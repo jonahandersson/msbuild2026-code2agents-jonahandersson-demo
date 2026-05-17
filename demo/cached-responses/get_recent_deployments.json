@@ -1,0 +1,52 @@
+[
+  {
+    "id": "build-2891",
+    "repo": "shop-api",
+    "branch": "main",
+    "commitSha": "a4f9c12e",
+    "status": "failed",
+    "startedAt": "2026-05-15T07:48:00Z",
+    "finishedAt": "2026-05-15T07:54:00Z",
+    "failureMessage": "Migration 20260515_AddCustomerLoyalty timed out after 30s during ALTER TABLE Orders ADD COLUMN..."
+  },
+  {
+    "id": "build-2890",
+    "repo": "shop-api",
+    "branch": "main",
+    "commitSha": "a4f9c12e",
+    "status": "failed",
+    "startedAt": "2026-05-15T07:20:00Z",
+    "finishedAt": "2026-05-15T07:26:00Z",
+    "failureMessage": "Same as build-2891"
+  },
+  {
+    "id": "build-2889",
+    "repo": "shop-api",
+    "branch": "main",
+    "commitSha": "b1e3d847",
+    "status": "succeeded",
+    "startedAt": "2026-05-15T05:00:00Z",
+    "finishedAt": "2026-05-15T05:07:00Z",
+    "failureMessage": null
+  },
+  {
+    "id": "build-2888",
+    "repo": "shop-api",
+    "branch": "main",
+    "commitSha": "9c2a55f1",
+    "status": "succeeded",
+    "startedAt": "2026-05-15T00:00:00Z",
+    "finishedAt": "2026-05-15T00:06:00Z",
+    "failureMessage": null
+  },
+  {
+    "id": "build-2887",
+    "repo": "shop-api",
+    "branch": "main",
+    "commitSha": "5e8b3290",
+    "status": "succeeded",
+    "startedAt": "2026-05-14T18:00:00Z",
+    "finishedAt": "2026-05-14T18:05:00Z",
+    "failureMessage": null
+  }
+]

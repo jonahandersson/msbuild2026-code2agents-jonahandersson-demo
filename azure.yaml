@@ -1,0 +1,16 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Azure/azure-dev/main/schemas/v1.0/azure.yaml.json
+
+name: build2026-mcp-azure-functions
+metadata:
+  template: build2026-mcp-azure-functions@1.0.0
+
+services:
+  deployment-mcp:
+    project: ./src/DeploymentMcp
+    language: dotnet
+    host: function
+
+infra:
+  provider: bicep
+  path: ./infra
+  module: main

@@ -1,0 +1,68 @@
+# shop-api build pipeline
+#
+# Runs on every push to main. Builds, tests, and "deploys" (the migration step
+# is the one that controls the failure scenario — see scripts/run-migrations.ps1
+# and src/ShopApi/Data/Migrations/manifest.json).
+
+trigger:
+  branches:
+    include:
+      - main
+      - rollback/*
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  dotnetVersion: '10.0.x'
+  buildConfiguration: 'Release'
+
+stages:
+  - stage: Build
+    displayName: 'Build and test'
+    jobs:
+      - job: BuildAndTest
+        displayName: 'dotnet build + test'
+        steps:
+          - task: UseDotNet@2
+            displayName: 'Install .NET SDK'
+            inputs:
+              version: $(dotnetVersion)
+              includePreviewVersions: true
+
+          - script: dotnet restore
+            displayName: 'dotnet restore'
+
+          - script: dotnet build --configuration $(buildConfiguration) --no-restore
+            displayName: 'dotnet build'
+
+          - script: dotnet test --configuration $(buildConfiguration) --no-build --logger trx
+            displayName: 'dotnet test'
+
+          - task: PublishTestResults@2
+            condition: succeededOrFailed()
+            inputs:
+              testResultsFormat: 'VSTest'
+              testResultsFiles: '**/*.trx'
+              failTaskOnFailedTests: true
+
+  - stage: DeployMigrations
+    displayName: 'Apply database migrations'
+    dependsOn: Build
+    condition: succeeded()
+    jobs:
+      - job: Migrate
+        displayName: 'Run migrations'
+        timeoutInMinutes: 2
+        steps:
+          - task: UseDotNet@2
+            inputs:
+              version: $(dotnetVersion)
+              includePreviewVersions: true
+
+          # This is the step that fails when the manifest's simulateTimeout = true.
+          # In a real production setup, replace it with `dotnet ef database update`
+          # pointed at your production database (with a short --command-timeout).
+          - pwsh: ./scripts/run-migrations.ps1
+            displayName: 'Apply database migrations'
+            workingDirectory: $(System.DefaultWorkingDirectory)

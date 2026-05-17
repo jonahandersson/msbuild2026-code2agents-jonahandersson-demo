@@ -1,0 +1,7 @@
+{
+  "pullRequestId": 4271,
+  "url": "https://dev.azure.com/contoso/Shop/_git/shop-api/pullrequest/4271",
+  "title": "Rollback shop-api to b1e3d84 — automated by agent",
+  "sourceBranch": "rollback/auto-b1e3d84",
+  "targetBranch": "main"
+}

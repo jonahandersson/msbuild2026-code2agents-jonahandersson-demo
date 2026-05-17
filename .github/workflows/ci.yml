@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+    branches: [main, 'step-*']
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    name: Build (.NET 10)
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+          include-prerelease: true
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --configuration Release --no-restore
+
+      - name: Verify Function packs
+        run: dotnet publish src/DeploymentMcp/DeploymentMcp.csproj -c Release -o ./out/func

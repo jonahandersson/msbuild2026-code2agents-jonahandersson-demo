@@ -1,0 +1,47 @@
+{
+  "name": "Build 2026 - MCP on Azure Functions",
+  "image": "mcr.microsoft.com/devcontainers/dotnet:1-10.0",
+
+  "features": {
+    "ghcr.io/devcontainers/features/azure-cli:1": {
+      "version": "latest"
+    },
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "lts"
+    },
+    "ghcr.io/azure/azure-dev/azd:latest": {}
+  },
+
+  "postCreateCommand": "npm install -g azure-functions-core-tools@4 --unsafe-perm true && dotnet workload update && dotnet restore",
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-dotnettools.csdevkit",
+        "ms-azuretools.vscode-azurefunctions",
+        "ms-azuretools.vscode-bicep",
+        "ms-azuretools.azure-dev",
+        "github.copilot",
+        "github.copilot-chat",
+        "ms-vscode.vscode-node-azure-pack"
+      ],
+      "settings": {
+        "editor.fontSize": 16,
+        "terminal.integrated.fontSize": 16,
+        "workbench.colorTheme": "GitHub Dark Default",
+        "editor.minimap.enabled": false,
+        "editor.lineNumbers": "on",
+        "files.autoSave": "onFocusChange"
+      }
+    }
+  },
+
+  "forwardPorts": [7071],
+  "portsAttributes": {
+    "7071": {
+      "label": "Azure Functions (MCP server)",
+      "onAutoForward": "notify"
+    }
+  }
+}

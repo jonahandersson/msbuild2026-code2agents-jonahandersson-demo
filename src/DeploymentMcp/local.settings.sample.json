@@ -1,0 +1,22 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated",
+    "FUNCTIONS_INPROC_NET8_ENABLED": "0",
+
+    "// --- Demo behavior ---": "",
+    "DemoMode": "true",
+
+    "// --- Azure DevOps (only used when DemoMode is false) ---": "",
+    "AzureDevOps__OrgUrl": "https://dev.azure.com/<your-org>",
+    "AzureDevOps__Project": "<your-project>",
+
+    "// --- Telemetry (optional locally) ---": "",
+    "APPLICATIONINSIGHTS_CONNECTION_STRING": ""
+  },
+  "Host": {
+    "CORS": "*",
+    "LocalHttpPort": 7071
+  }
+}

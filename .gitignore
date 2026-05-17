@@ -1,0 +1,35 @@
+# Build output
+bin/
+obj/
+out/
+
+# .NET tooling
+*.user
+*.suo
+*.userprefs
+*.swp
+*.DS_Store
+.vs/
+.vscode/launch.json
+.vscode/settings.json
+
+# Functions
+local.settings.json
+.azure/
+__azurite_db*.json
+__blobstorage__/
+__queuestorage__/
+
+# azd
+.azd/
+azure.env
+
+# Demo artifacts (audience clones a clean repo)
+demo/recording.mp4
+demo/recording.mov
+
+# Rider / VS / VS Code
+.idea/
+
+# Logs
+*.log

@@ -1,0 +1,21 @@
+<Project Sdk="Aspire.AppHost.Sdk/9.0.0">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>DeploymentMcp.AppHost</RootNamespace>
+    <IsAspireHost>true</IsAspireHost>
+    <UserSecretsId>build2026-mcp-apphost</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.AppHost" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The agent project — Aspire knows how to start it -->
+    <ProjectReference Include="..\DevOpsAgent\DevOpsAgent.csproj" />
+  </ItemGroup>
+
+</Project>

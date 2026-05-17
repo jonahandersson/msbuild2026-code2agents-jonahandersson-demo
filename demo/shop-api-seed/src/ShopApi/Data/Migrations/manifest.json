@@ -1,0 +1,17 @@
+{
+  "$comment": [
+    "This file controls how scripts/run-migrations.ps1 behaves in CI.",
+    "Set simulateTimeout to true to make the pipeline fail with a realistic",
+    "command-timeout error message. Set it to false (or remove the flag) to",
+    "let the migration succeed.",
+    "",
+    "Demo storyboard:",
+    "  - Initial commit: simulateTimeout=false → pipeline succeeds (green build)",
+    "  - Final commit (the 'bad' one): simulateTimeout=true → pipeline fails",
+    "  - The agent's rollback PR will revert this file back to false."
+  ],
+  "name": "20260515_AddCustomerLoyalty",
+  "simulateTimeout": true,
+  "timeoutSeconds": 30,
+  "expectedDuration": "5-10s in a healthy production deploy"
+}
