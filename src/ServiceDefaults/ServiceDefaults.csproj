@@ -17,7 +17,7 @@
   </ItemGroup>
 
   <ItemGroup Label="Azure Monitor — ships OTel data to App Insights">
-    <PackageReference Include="Azure.Monitor.OpenTelemetry.Exporter" />
+    <PackageReference Include="Azure.Monitor.OpenTelemetry.AspNetCore" />
   </ItemGroup>
 
   <ItemGroup Label="Service discovery (Aspire-friendly URLs)">

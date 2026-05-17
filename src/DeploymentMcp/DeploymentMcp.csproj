@@ -9,6 +9,8 @@
     <RootNamespace>DeploymentMcp</RootNamespace>
     <LangVersion>latest</LangVersion>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <!-- NU1902: OpenTelemetry.Api/Exporter latest still flagged; no upstream fix yet. -->
+    <NoWarn>$(NoWarn);NU1902</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
@@ -30,8 +32,6 @@
     <PackageReference Include="Microsoft.ApplicationInsights.WorkerService" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker.ApplicationInsights" />
     <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
-    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" />
-    <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" />
   </ItemGroup>
 
   <ItemGroup>

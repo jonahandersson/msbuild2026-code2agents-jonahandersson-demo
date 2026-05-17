@@ -13,6 +13,16 @@
     },
     "foundryProjectId": {
       "value": "${AZURE_FOUNDRY_PROJECT_ID=}"
+    },
+    "demoMode": {
+      "value": "${DEMO_MODE=true}"
+    },
+    "azureDevOpsOrgUrl": {
+      "value": "${AZURE_DEVOPS_ORG_URL=}"
+    },
+    "azureDevOpsProject": {
+      "value": "${AZURE_DEVOPS_PROJECT=}"
     }
   }
 }
+

@@ -1,5 +1,6 @@
 using FluentAssertions;
 using ShopApi.Models;
+using Xunit;
 
 namespace ShopApi.Tests;
 

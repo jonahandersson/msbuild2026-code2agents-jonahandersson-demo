@@ -22,9 +22,23 @@ param namePrefix string = 'mcpdemo'
 @description('Foundry project resource ID. Function MI gets reader on this.')
 param foundryProjectId string = ''
 
+@description('When true, the Function uses the in-memory FakeDeploymentService and AzureDevOps* settings are not required. String to play nice with azd env-var substitution.')
+@allowed([ 'true', 'false' ])
+param demoMode string = 'true'
+
+@description('Azure DevOps organization URL (only used when demoMode is false).')
+param azureDevOpsOrgUrl string = ''
+
+@description('Azure DevOps project name (only used when demoMode is false).')
+param azureDevOpsProject string = ''
+
 // Predictable, unique-ish suffix so names don't collide across deploys
 var suffix = uniqueString(resourceGroup().id, environmentName)
 var resourceToken = toLower('${namePrefix}${suffix}')
+
+var tags = {
+  'azd-env-name': environmentName
+}
 
 // =============================================================================
 // Identity
@@ -33,6 +47,7 @@ var resourceToken = toLower('${namePrefix}${suffix}')
 resource functionIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
   name: 'id-${resourceToken}'
   location: location
+  tags: tags
 }
 
 // =============================================================================
@@ -40,8 +55,10 @@ resource functionIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023
 // =============================================================================
 
 resource storage 'Microsoft.Storage/storageAccounts@2023-05-01' = {
-  name: 'st${resourceToken}'
+  // Storage account names: lowercase alphanumeric, 3-24 chars.
+  name: take('st${resourceToken}', 24)
   location: location
+  tags: tags
   sku: { name: 'Standard_LRS' }
   kind: 'StorageV2'
   properties: {
@@ -59,6 +76,7 @@ resource storage 'Microsoft.Storage/storageAccounts@2023-05-01' = {
 resource logWorkspace 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
   name: 'log-${resourceToken}'
   location: location
+  tags: tags
   properties: {
     sku: { name: 'PerGB2018' }
     retentionInDays: 30
@@ -68,6 +86,7 @@ resource logWorkspace 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
 resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
   name: 'ai-${resourceToken}'
   location: location
+  tags: tags
   kind: 'web'
   properties: {
     Application_Type: 'web'
@@ -82,6 +101,7 @@ resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
 resource flexPlan 'Microsoft.Web/serverfarms@2023-12-01' = {
   name: 'plan-${resourceToken}'
   location: location
+  tags: tags
   sku: { name: 'FC1', tier: 'FlexConsumption' }
   kind: 'functionapp'
   properties: { reserved: true }
@@ -91,6 +111,10 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
   name: 'func-${resourceToken}'
   location: location
   kind: 'functionapp,linux'
+  // azd uses this tag to know which Function App to push the 'deployment-mcp' service to.
+  tags: union(tags, {
+    'azd-service-name': 'deployment-mcp'
+  })
   identity: {
     type: 'UserAssigned'
     userAssignedIdentities: {
@@ -140,15 +164,17 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
         }
         {
           name: 'DemoMode'
-          value: 'false'
+          value: demoMode
         }
         {
+          // Only emitted when not in demo mode; otherwise AzureDevOpsOptions
+          // validation is skipped in Program.cs so the Function still boots.
           name: 'AzureDevOps__OrgUrl'
-          value: 'https://dev.azure.com/<your-org>'
+          value: demoMode == 'true' ? '' : azureDevOpsOrgUrl
         }
         {
           name: 'AzureDevOps__Project'
-          value: '<your-project>'
+          value: demoMode == 'true' ? '' : azureDevOpsProject
         }
       ]
     }
@@ -175,16 +201,15 @@ resource storageRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-
 
 // Optional: give the Function identity reader access to your Foundry project,
 // so calls from the Function to Foundry don't need any keys.
-resource foundryReaderAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' =
+// Delegated to a sub-module so the role assignment is scoped to the
+// Foundry project's resource group (which may differ from this RG).
+module foundryReaderAssignment 'modules/foundry-role.bicep' =
   if (!empty(foundryProjectId)) {
-    name: guid(foundryProjectId, functionIdentity.id, 'AzureAIUser')
-    properties: {
+    name: 'foundry-reader-assignment'
+    scope: resourceGroup(split(foundryProjectId, '/')[2], split(foundryProjectId, '/')[4])
+    params: {
+      foundryProjectName: last(split(foundryProjectId, '/'))
       principalId: functionIdentity.properties.principalId
-      principalType: 'ServicePrincipal'
-      // Azure AI User (built-in role for Foundry)
-      roleDefinitionId: subscriptionResourceId(
-        'Microsoft.Authorization/roleDefinitions',
-        '53ca6127-db72-4b80-b1b0-d745d6d5456d')
     }
   }
 
@@ -197,5 +222,4 @@ output FUNCTION_APP_NAME string         = functionApp.name
 output FUNCTION_APP_HOSTNAME string     = functionApp.properties.defaultHostName
 output FUNCTION_IDENTITY_CLIENT_ID string = functionIdentity.properties.clientId
 output APPLICATION_INSIGHTS_NAME string  = appInsights.name
-output MCP_ENDPOINT string              =
-  'https://${functionApp.properties.defaultHostName}/runtime/webhooks/mcp'
+output MCP_ENDPOINT string              = 'https://${functionApp.properties.defaultHostName}/runtime/webhooks/mcp'

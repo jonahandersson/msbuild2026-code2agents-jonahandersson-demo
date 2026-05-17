@@ -7,17 +7,23 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>DevOpsAgent</RootNamespace>
     <LangVersion>latest</LangVersion>
+    <NoWarn>$(NoWarn);OPENAI001;AAIP001;NU1902</NoWarn>
   </PropertyGroup>
 
   <ItemGroup Label="Microsoft Agent Framework 1.0">
     <PackageReference Include="Microsoft.Agents.AI" />
     <PackageReference Include="Microsoft.Agents.AI.Foundry" />
-    <PackageReference Include="Microsoft.Agents.AI.Mcp" />
+    <PackageReference Include="Microsoft.Extensions.AI" />
   </ItemGroup>
 
   <ItemGroup Label="Azure auth + Foundry">
     <PackageReference Include="Azure.Identity" />
     <PackageReference Include="Azure.AI.Projects" />
+    <PackageReference Include="Azure.AI.Projects.Agents" />
+  </ItemGroup>
+
+  <ItemGroup Label="OpenAI types for ResponseTool.CreateMcpTool">
+    <PackageReference Include="OpenAI" />
   </ItemGroup>
 
   <ItemGroup>

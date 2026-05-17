@@ -2,7 +2,9 @@ using Azure.Identity;
 using DeploymentMcp.Configuration;
 using DeploymentMcp.ServiceDefaults;
 using DeploymentMcp.Services;
+using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Builder;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -26,12 +28,20 @@ builder.Services
     .ConfigureFunctionsApplicationInsights();
 
 // --- Options ---
-// Validated at startup. If the config is wrong, we fail fast — not at runtime.
-builder.Services
+// Validated at startup ONLY when DemoMode is false. In demo mode the fake
+// service ignores these, so we don't want a missing OrgUrl to crash boot.
+var demoMode = builder.Configuration.GetValue<bool>("DemoMode");
+
+var azdoOptions = builder.Services
     .AddOptions<AzureDevOpsOptions>()
-    .Bind(builder.Configuration.GetSection(AzureDevOpsOptions.SectionName))
-    .ValidateDataAnnotations()
-    .ValidateOnStart();
+    .Bind(builder.Configuration.GetSection(AzureDevOpsOptions.SectionName));
+
+if (!demoMode)
+{
+    azdoOptions
+        .ValidateDataAnnotations()
+        .ValidateOnStart();
+}
 
 // --- HTTP client for AzureDevOpsClient ---
 // Resilience is wired through ServiceDefaults' ConfigureHttpClientDefaults.
@@ -40,8 +50,6 @@ builder.Services.AddHttpClient<AzureDevOpsClient>();
 // --- The deployment service ---
 // In DemoMode, swap the real Azure DevOps client for an in-memory fake.
 // Same interface — that's the point.
-var demoMode = builder.Configuration.GetValue<bool>("DemoMode");
-
 if (demoMode)
 {
     builder.Services.AddSingleton<IDeploymentService, FakeDeploymentService>();

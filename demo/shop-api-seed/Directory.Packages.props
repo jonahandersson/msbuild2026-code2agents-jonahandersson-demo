@@ -1,0 +1,10 @@
+<Project>
+  <!--
+    The shop-api-seed app is a standalone demo project seeded into Azure DevOps
+    for the rehearsal. It deliberately opts OUT of the main solution's Central
+    Package Management so each <PackageReference> can carry its own Version.
+  -->
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+</Project>
