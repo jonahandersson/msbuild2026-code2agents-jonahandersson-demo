@@ -23,10 +23,6 @@
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Http.AspNetCore" />
   </ItemGroup>
 
-  <ItemGroup Label="MCP — the star of the show">
-    <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Mcp" />
-  </ItemGroup>
-
   <ItemGroup>
     <None Update="host.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
