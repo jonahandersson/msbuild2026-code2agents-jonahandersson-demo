@@ -32,11 +32,20 @@ becomes a structured event in App Insights.
 ```kql
 traces
 | where timestamp > ago(15m)
+// Category is the ILogger category name. Our tools log under
+// 'DeploymentMcp.Tools.DeploymentTools' so 'DeploymentMcp' is the prefix.
 | where customDimensions["Category"] startswith "DeploymentMcp"
 | where message has "MCP tool"
+// 'Tool' is set via logger.BeginScope(...) in DeploymentTools.cs.
+// Depending on the Application Insights worker version the scope key may be
+// flattened as customDimensions["Tool"] OR nested inside a 'Scope' JSON
+// array. Coalesce both shapes so this query is robust either way.
+| extend tool = coalesce(
+    tostring(customDimensions["Tool"]),
+    tostring(parse_json(tostring(customDimensions["Scope"]))[0].Tool))
 | project
     timestamp,
-    tool = tostring(customDimensions["Tool"]),
+    tool,
     message,
     operation_Id
 | order by timestamp desc
@@ -86,7 +95,10 @@ flip to this:
 ```kql
 requests
 | where timestamp > ago(24h)
-| where operation_Name startswith "McpToolTrigger"
+// Azure Functions sets operation_Name to the [Function(nameof(X))] method
+// name, NOT to the trigger type. These are the three MCP-triggered methods
+// in DeploymentTools.cs.
+| where operation_Name in ("GetRecentDeployments", "DiagnoseDeployment", "CreateRollbackPr")
 | summarize
     p50 = percentile(duration, 50),
     p95 = percentile(duration, 95),
@@ -109,7 +121,8 @@ data instead of waving hands:
 ```kql
 requests
 | where timestamp > ago(7d)
-| where operation_Name startswith "McpToolTrigger"
+// See query 3 — operation_Name is the function method name.
+| where operation_Name in ("GetRecentDeployments", "DiagnoseDeployment", "CreateRollbackPr")
 | where success == false
 | project
     timestamp,
