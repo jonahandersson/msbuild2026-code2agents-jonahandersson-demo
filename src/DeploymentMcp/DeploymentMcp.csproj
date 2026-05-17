@@ -27,13 +27,6 @@
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Mcp" />
   </ItemGroup>
 
-  <ItemGroup Label="Auth, telemetry, resilience">
-    <PackageReference Include="Azure.Identity" />
-    <PackageReference Include="Microsoft.ApplicationInsights.WorkerService" />
-    <PackageReference Include="Microsoft.Azure.Functions.Worker.ApplicationInsights" />
-    <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
-  </ItemGroup>
-
   <ItemGroup>
     <None Update="host.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
