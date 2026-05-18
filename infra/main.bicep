@@ -19,8 +19,15 @@ param location string = resourceGroup().location
 @maxLength(11)
 param namePrefix string = 'mcpdemo'
 
-@description('Foundry project resource ID. Function MI gets reader on this.')
-param foundryProjectId string = ''
+@description('Foundry model deployment name. Must be available in the target region.')
+param foundryModelName string = 'gpt-4o-mini'
+
+@description('Foundry model version. Verify availability with: az cognitiveservices model list --location <region>.')
+param foundryModelVersion string = '2024-07-18'
+
+@description('Foundry model deployment capacity in thousands of tokens-per-minute.')
+@minValue(1)
+param foundryModelCapacity int = 30
 
 @description('When true, the Function uses the in-memory FakeDeploymentService and AzureDevOps* settings are not required. String to play nice with azd env-var substitution.')
 @allowed([ 'true', 'false' ])
@@ -91,6 +98,58 @@ resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
   properties: {
     Application_Type: 'web'
     WorkspaceResourceId: logWorkspace.id
+  }
+}
+
+// =============================================================================
+// Microsoft Foundry — account + project + model deployment
+//
+// One-shot AI Foundry: the account holds the model deployments, the project
+// is what the agent connects to. Entra-only (no keys) to match the talk's
+// "managed identity all the way down" narrative.
+// =============================================================================
+
+resource foundryAccount 'Microsoft.CognitiveServices/accounts@2025-06-01' = {
+  name: 'aif-${resourceToken}'
+  location: location
+  tags: tags
+  kind: 'AIServices'
+  sku: { name: 'S0' }
+  identity: { type: 'SystemAssigned' }
+  properties: {
+    customSubDomainName: 'aif-${resourceToken}'
+    publicNetworkAccess: 'Enabled'
+    disableLocalAuth: true
+    allowProjectManagement: true
+  }
+}
+
+resource foundryProject 'Microsoft.CognitiveServices/accounts/projects@2025-06-01' = {
+  parent: foundryAccount
+  name: 'proj-${resourceToken}'
+  location: location
+  tags: tags
+  identity: { type: 'SystemAssigned' }
+  properties: {
+    displayName: 'Build 2026 DevOps Agent'
+    description: 'Project for the rollback agent demo.'
+  }
+}
+
+resource foundryModelDeployment 'Microsoft.CognitiveServices/accounts/deployments@2025-06-01' = {
+  parent: foundryAccount
+  name: foundryModelName
+  sku: {
+    name: 'GlobalStandard'
+    capacity: foundryModelCapacity
+  }
+  properties: {
+    model: {
+      format: 'OpenAI'
+      name: foundryModelName
+      version: foundryModelVersion
+    }
+    raiPolicyName: 'Microsoft.DefaultV2'
   }
 }
 
@@ -176,6 +235,14 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
           name: 'AzureDevOps__Project'
           value: demoMode == 'true' ? '' : azureDevOpsProject
         }
+        {
+          name: 'FOUNDRY_PROJECT_ENDPOINT'
+          value: foundryProject.properties.endpoints['AI Foundry API']
+        }
+        {
+          name: 'FOUNDRY_MODEL'
+          value: foundryModelName
+        }
       ]
     }
   }
@@ -199,19 +266,35 @@ resource storageRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-
   }
 }
 
-// Optional: give the Function identity reader access to your Foundry project,
-// so calls from the Function to Foundry don't need any keys.
-// Delegated to a sub-module so the role assignment is scoped to the
-// Foundry project's resource group (which may differ from this RG).
-module foundryReaderAssignment 'modules/foundry-role.bicep' =
-  if (!empty(foundryProjectId)) {
-    name: 'foundry-reader-assignment'
-    scope: resourceGroup(split(foundryProjectId, '/')[2], split(foundryProjectId, '/')[4])
-    params: {
-      foundryProjectName: last(split(foundryProjectId, '/'))
-      principalId: functionIdentity.properties.principalId
-    }
+// Function MI -> Cognitive Services User on the Foundry account.
+// Lets the identity discover models + read deployments.
+resource foundryCognitiveServicesUser 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(foundryAccount.id, functionIdentity.id, 'CognitiveServicesUser')
+  scope: foundryAccount
+  properties: {
+    principalId: functionIdentity.properties.principalId
+    principalType: 'ServicePrincipal'
+    // Cognitive Services User
+    roleDefinitionId: subscriptionResourceId(
+      'Microsoft.Authorization/roleDefinitions',
+      'a97b65f3-24c7-4388-baec-2e87135dc908')
   }
+}
+
+// Function MI -> Azure AI User on the Foundry account.
+// Lets the identity create/run agents inside any project under the account.
+resource foundryAzureAiUser 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(foundryAccount.id, functionIdentity.id, 'AzureAIUser')
+  scope: foundryAccount
+  properties: {
+    principalId: functionIdentity.properties.principalId
+    principalType: 'ServicePrincipal'
+    // Azure AI User
+    roleDefinitionId: subscriptionResourceId(
+      'Microsoft.Authorization/roleDefinitions',
+      '53ca6127-db72-4b80-b1b0-d745d6d5456d')
+  }
+}
 
 // =============================================================================
 // Outputs — azd uses these
@@ -223,3 +306,7 @@ output FUNCTION_APP_HOSTNAME string     = functionApp.properties.defaultHostName
 output FUNCTION_IDENTITY_CLIENT_ID string = functionIdentity.properties.clientId
 output APPLICATION_INSIGHTS_NAME string  = appInsights.name
 output MCP_ENDPOINT string              = 'https://${functionApp.properties.defaultHostName}/runtime/webhooks/mcp'
+output FOUNDRY_ACCOUNT_NAME string      = foundryAccount.name
+output FOUNDRY_PROJECT_NAME string      = foundryProject.name
+output FOUNDRY_PROJECT_ENDPOINT string  = foundryProject.properties.endpoints['AI Foundry API']
+output FOUNDRY_MODEL string             = foundryModelName

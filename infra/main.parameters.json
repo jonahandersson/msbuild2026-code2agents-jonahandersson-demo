@@ -11,8 +11,14 @@
     "namePrefix": {
       "value": "${AZURE_NAME_PREFIX=mcpdemo}"
     },
-    "foundryProjectId": {
-      "value": "${AZURE_FOUNDRY_PROJECT_ID=}"
+    "foundryModelName": {
+      "value": "${AZURE_FOUNDRY_MODEL=gpt-4o-mini}"
+    },
+    "foundryModelVersion": {
+      "value": "${AZURE_FOUNDRY_MODEL_VERSION=2024-07-18}"
+    },
+    "foundryModelCapacity": {
+      "value": "${AZURE_FOUNDRY_MODEL_CAPACITY=30}"
     },
     "demoMode": {
       "value": "${DEMO_MODE=true}"
