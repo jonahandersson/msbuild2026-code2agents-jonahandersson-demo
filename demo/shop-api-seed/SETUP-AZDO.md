@@ -8,6 +8,38 @@ This guide walks you through everything from "I have an Azure subscription" to "
 
 ---
 
+## Required permissions for the Function's Managed Identity
+
+The Function App's user-assigned MI (provisioned by `infra/main.bicep`) needs
+these scopes inside Azure DevOps. Step 5 and Step 6 below walk you through
+granting them; this table is the at-a-glance reference for the talk Q&A and
+for security review.
+
+| Scope                              | Where to grant                                                | Why                                                |
+|------------------------------------|---------------------------------------------------------------|----------------------------------------------------|
+| **Org membership** (Basic license) | Organization settings → Users                                 | The MI must be a member of the AzDO org at all     |
+| **Project membership**             | Add to **Shop** project during Step 5                          | The MI needs access to the demo project specifically |
+| `Read` on **shop-api** repo        | Project settings → Repositories → shop-api → Security         | `get_recent_deployments` calls Git APIs            |
+| `Contribute`                       | Same place                                                     | `create_rollback_pr` needs to push a revert branch |
+| `Create branch`                    | Same place                                                     | The rollback branch is a new ref                   |
+| `Contribute to pull requests`      | Same place                                                     | The MI opens the PR itself                         |
+| `View builds` on the project       | Project settings → Pipelines → Security                       | `diagnose_deployment` reads build results          |
+
+**Anti-scopes** (do NOT grant):
+
+- `Force push`, `Bypass policies`, `Manage permissions` — the agent must respect
+  branch policies and required reviewers. That's the whole "the agent is a junior
+  dev that types fast" story.
+- `Project Administrator` / `Project Collection Administrator` — way too broad.
+  `Project Contributors` is the demo shortcut; the explicit scopes above are
+  the right answer for a real estate.
+
+Auth between Function and AzDO is a Bearer token from the MI for resource
+`499b84ac-1321-427f-aa17-267ca6975798` (the AzDO Entra app ID) — no PAT,
+no secret, no connection string.
+
+---
+
 ## Before you start
 
 Have these ready:
