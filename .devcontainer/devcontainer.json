@@ -7,13 +7,16 @@
       "version": "latest"
     },
     "ghcr.io/devcontainers/features/github-cli:1": {},
+    // Node is required: Azure Functions Core Tools (`func`) is distributed via npm.
     "ghcr.io/devcontainers/features/node:1": {
       "version": "lts"
     },
     "ghcr.io/azure/azure-dev/azd:latest": {}
   },
 
-  "postCreateCommand": "npm install -g azure-functions-core-tools@4 --unsafe-perm true && dotnet workload update && dotnet restore",
+  // Install func, restore NuGet, and set safe git defaults so Codespace
+  // demos don't prompt for identity on the first `git commit`.
+  "postCreateCommand": "npm install -g azure-functions-core-tools@4 --unsafe-perm true && dotnet workload update && dotnet restore && git config --global init.defaultBranch main && git config --global pull.rebase false && git config --global core.autocrlf input",
 
   "customizations": {
     "vscode": {
