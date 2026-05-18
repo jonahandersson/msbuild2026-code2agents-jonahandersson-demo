@@ -14,7 +14,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- The agent project — Aspire knows how to start it -->
+    <!--
+      Only DevOpsAgent is referenced as a project. The MCP server is started
+      via `AddExecutable("func")` in Program.cs because Aspire 9 has no
+      first-class Azure Functions resource yet — a ProjectReference would
+      try to launch it with `dotnet run`, bypassing the Functions host.
+    -->
     <ProjectReference Include="..\DevOpsAgent\DevOpsAgent.csproj" />
   </ItemGroup>
 

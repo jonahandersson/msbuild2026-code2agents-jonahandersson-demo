@@ -29,5 +29,11 @@ jobs:
       - name: Build
         run: dotnet build --configuration Release --no-restore
 
+      - name: Test
+        # No-ops cleanly when the solution contains no test projects.
+        # The demo/shop-api-seed/tests/ShopApi.Tests suite is intentionally
+        # outside the main .sln — it ships with the seed script, not the demo build.
+        run: dotnet test --configuration Release --no-build --verbosity normal
+
       - name: Verify Function packs
         run: dotnet publish src/DeploymentMcp/DeploymentMcp.csproj -c Release -o ./out/func
