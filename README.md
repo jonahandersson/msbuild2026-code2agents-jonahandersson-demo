@@ -131,6 +131,50 @@ azd up
 The Azure DevOps role assignment is a manual step because it spans services — see
 [STEPS.md](./STEPS.md) for the one-liner.
 
+### Deploying from GitHub Actions (OIDC federation)
+
+The [.github/workflows/deploy.yml](./.github/workflows/deploy.yml) workflow runs
+`azd up` on every push to `main`. It authenticates to Azure with **OpenID
+Connect federation** — no client secrets stored in GitHub, no PATs.
+
+**One-time setup:**
+
+1. **Create an Entra app registration with a federated credential.**
+   The fastest path is `azd pipeline config` from a local clone:
+
+   ```bash
+   azd auth login
+   azd pipeline config --provider github
+   ```
+
+   This creates the app registration, sets up federated credentials for the
+   `main` branch + pull requests, grants `Contributor` + `User Access
+   Administrator` on the target subscription, and writes the GitHub secrets
+   below for you. If you prefer to do it by hand, the equivalent `az` flow is
+   in the [azd docs](https://learn.microsoft.com/azure/developer/azure-developer-cli/configure-devops-pipeline).
+
+2. **Confirm the GitHub secrets and variables exist** under
+   *Settings → Secrets and variables → Actions*:
+
+   | Scope    | Name                     | Example                                |
+   |----------|--------------------------|----------------------------------------|
+   | Secret   | `AZURE_CLIENT_ID`        | GUID of the app registration           |
+   | Secret   | `AZURE_TENANT_ID`        | Your Entra tenant GUID                 |
+   | Secret   | `AZURE_SUBSCRIPTION_ID`  | Target subscription GUID               |
+   | Variable | `AZURE_ENV_NAME`         | `demo`                                 |
+   | Variable | `AZURE_LOCATION`         | `swedencentral`                        |
+   | Variable | `AZURE_NAME_PREFIX`      | `mcpdemo` (3–11 lowercase chars)       |
+
+3. **Verify the federated credential subject** matches the workflow trigger.
+   For pushes to `main`, the subject should be
+   `repo:<owner>/<repo>:ref:refs/heads/main`. Mismatch is the #1 cause of
+   `AADSTS70021` errors in the `azure/login` step.
+
+No Azure DevOps PAT is ever stored — the Function App's *runtime* identity
+(a user-assigned Managed Identity provisioned by Bicep) authenticates to
+Azure DevOps separately. See [SETUP-AZDO.md](./demo/shop-api-seed/SETUP-AZDO.md)
+for the required AzDO scopes on that identity.
+
 ---
 
 ## Repo walkthrough

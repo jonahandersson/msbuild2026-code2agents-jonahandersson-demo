@@ -33,3 +33,6 @@ demo/recording.mov
 
 # Logs
 *.log
+
+# Roslyn/OmniSharp language-server cache
+*.lscache
