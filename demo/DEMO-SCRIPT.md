@@ -27,10 +27,10 @@ Pre-warm the Foundry model with a throwaway call ~2 minutes before going on. Fir
 | 3    | 01:00 | **Architecture** slide (cobalt blue diagram)      | "Function = MCP server. Agent = MCP client. The protocol is the contract."                      |
 | 4    | 02:00 | `git checkout step-1-mcp-tool` → `DeploymentTools.cs` | "Three tools, three attributes. That's the whole MCP API."                                  |
 | 5    | 04:00 | Run `func start` in terminal pane                 | "It's just an Azure Function. Same hosting, same CI/CD, same observability."                    |
-| 6    | 05:00 | Hit the MCP discovery endpoint                    | "The extension exposed our tools as standard MCP. Any MCP-compatible agent can call them now."  |
+| 6    | 05:00 | Open MCP Inspector against `/runtime/webhooks/mcp/sse` | "The extension exposed our tools as standard MCP. Any MCP-compatible agent can call them now."  |
 | 7    | 07:30 | `git checkout step-2-production` → `AzureDevOpsClient.cs` | "Production hardening. Watch the diff."                                                  |
 | 8    | 08:30 | Highlight `DefaultAzureCredential` + Bicep        | "No PAT. No connection string. Managed Identity, same code, dev and prod."                      |
-| 9    | 10:00 | Show App Insights traces (live)                   | "Every tool call shows up here. That's a real audit trail for what your agents are doing."      |
+| 9    | 10:00 | Show App Insights traces (live)                   | "Every tool call shows up here. That's a real audit trail for what your agents are doing. (Cloud Aspire dashboard is not deployed in this environment, so use App Insights for observability.)"      |
 | 10   | 11:30 | `git checkout step-3-agent-azdo` → `DevOpsAgent/Program.cs` | "Now the *client* side. Microsoft Agent Framework, GA in April."                       |
 | 11   | 13:00 | Run `dotnet run`, paste the rollback prompt       | "Watch the agent decide. I'm not telling it which tools to call."                               |
 | 12   | 14:00 | Function logs in pane 2 light up tool by tool     | "get_recent_deployments... diagnose_deployment... create_rollback_pr..."                        |

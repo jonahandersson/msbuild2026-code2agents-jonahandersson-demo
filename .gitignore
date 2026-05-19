@@ -1,3 +1,12 @@
+# Personal/private guides and secrets
+_private/
+src/AppHost/secrets.json
+src/DeploymentMcp/secrets.json
+src/DevOpsAgent/secrets.json
+# UserSecrets global location (Windows)
+%APPDATA%/Microsoft/UserSecrets/
+# VS Code UserSecrets fallback (cross-platform)
+**/Microsoft/UserSecrets/
 # Build output
 bin/
 obj/
