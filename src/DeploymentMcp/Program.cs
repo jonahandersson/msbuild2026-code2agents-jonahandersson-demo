@@ -16,16 +16,14 @@ var builder = FunctionsApplication.CreateBuilder(args);
 builder.ConfigureFunctionsWebApplication();
 
 // --- Telemetry ---
-// AddServiceDefaults wires OpenTelemetry tracing + metrics + logging,
-// plus Azure Monitor export (when APPLICATIONINSIGHTS_CONNECTION_STRING is
-// set) and OTLP export (when running under .NET Aspire).
-//
-// We also keep the Functions-specific Application Insights worker so the
-// host-level telemetry (cold starts, scale events) flows through too.
+// Aspire pattern: ServiceDefaults wires OpenTelemetry + Azure Monitor exporter.
+// Per Microsoft docs ("dotnet-isolated-process-guide#application-insights"),
+// when a Functions project runs in an Aspire context it must NOT also call
+// AddApplicationInsightsTelemetryWorkerService / ConfigureFunctionsApplicationInsights
+// — doing so causes the worker to error on startup (TelemetryConfiguration
+// OptionsValidationException → SIGABRT). host.json has telemetryMode:
+// OpenTelemetry so the Functions host emits OTel signals too.
 builder.AddServiceDefaults();
-builder.Services
-    .AddApplicationInsightsTelemetryWorkerService()
-    .ConfigureFunctionsApplicationInsights();
 
 // --- Options ---
 // Validated at startup ONLY when DemoMode is false. In demo mode the fake

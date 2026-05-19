@@ -92,18 +92,20 @@ public static class Extensions
         // Exporters are mutually exclusive: in Azure we ship to App Insights,
         // locally we ship to the Aspire dashboard via OTLP. Registering both
         // would dual-export every span and break per-trace billing.
-        //
-        // NOTE: UseAzureMonitor is intentionally disabled. In the Function
-        // app, the Functions Worker AI integration
-        // (`ConfigureFunctionsApplicationInsights`) is the canonical
-        // telemetry path; layering UseAzureMonitor on top causes a
-        // TelemetryConfiguration conflict and a SIGABRT in the worker.
-        // For the DevOpsAgent console app we still want OTLP locally; in
-        // Azure the agent isn't run, so we don't need UseAzureMonitor there.
-        if (!string.IsNullOrWhiteSpace(
+        var aiConnectionString = builder.Configuration[
+            "APPLICATIONINSIGHTS_CONNECTION_STRING"];
+        if (!string.IsNullOrWhiteSpace(aiConnectionString))
+        {
+            // Aspire-recommended Azure Monitor exporter. This is the ONLY
+            // AI integration in the Function project — do NOT also call
+            // AddApplicationInsightsTelemetryWorkerService /
+            // ConfigureFunctionsApplicationInsights or the worker SIGABRTs.
+            builder.Services.AddOpenTelemetry().UseAzureMonitor();
+        }
+        else if (!string.IsNullOrWhiteSpace(
             builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"]))
         {
-            // OTLP exporter \u2014 used by the Aspire dashboard locally.
+            // OTLP exporter — used by the Aspire dashboard locally.
             builder.Services.AddOpenTelemetry().UseOtlpExporter();
         }
 

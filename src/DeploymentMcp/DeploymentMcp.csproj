@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -11,6 +11,7 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <!-- NU1902: OpenTelemetry.Api/Exporter latest still flagged; no upstream fix yet. -->
     <NoWarn>$(NoWarn);NU1902</NoWarn>
+    <UserSecretsId>365a9947-cd7a-4570-ae63-1e6330a5ed35</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
