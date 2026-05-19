@@ -92,31 +92,15 @@ public static class Extensions
         // Exporters are mutually exclusive: in Azure we ship to App Insights,
         // locally we ship to the Aspire dashboard via OTLP. Registering both
         // would dual-export every span and break per-trace billing.
-        var appInsights = builder.Configuration[
-            "APPLICATIONINSIGHTS_CONNECTION_STRING"];
-
-        // When running inside the Azure Functions isolated worker, the Functions
-        // host already wires Application Insights through
-        // `AddApplicationInsightsTelemetryWorkerService` + `ConfigureFunctionsApplicationInsights`.
-        // Layering UseAzureMonitor on top causes a TelemetryConfiguration
-        // registration conflict that crashes the worker (exit 134 / SIGABRT)
-        // with `OptionsValidationException: Application Insights SDK has not
-        // been added`. Detect the Functions worker and skip UseAzureMonitor.
-        // We check several env vars because Flex Consumption may not propagate
-        // FUNCTIONS_WORKER_RUNTIME to the isolated worker process.
-        var isFunctionsWorker =
-            !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("FUNCTIONS_WORKER_RUNTIME"))
-            || !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("FUNCTIONS_EXTENSION_VERSION"))
-            || !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("AzureWebJobsScriptRoot"));
-
-        if (!string.IsNullOrWhiteSpace(appInsights) && !isFunctionsWorker)
-        {
-            // Azure Monitor exporter \u2014 ships traces, logs, and metrics to
-            // App Insights. The same telemetry the speaker shows on stage.
-            builder.Services.AddOpenTelemetry()
-                .UseAzureMonitor(o => o.ConnectionString = appInsights);
-        }
-        else if (!string.IsNullOrWhiteSpace(
+        //
+        // NOTE: UseAzureMonitor is intentionally disabled. In the Function
+        // app, the Functions Worker AI integration
+        // (`ConfigureFunctionsApplicationInsights`) is the canonical
+        // telemetry path; layering UseAzureMonitor on top causes a
+        // TelemetryConfiguration conflict and a SIGABRT in the worker.
+        // For the DevOpsAgent console app we still want OTLP locally; in
+        // Azure the agent isn't run, so we don't need UseAzureMonitor there.
+        if (!string.IsNullOrWhiteSpace(
             builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"]))
         {
             // OTLP exporter \u2014 used by the Aspire dashboard locally.
