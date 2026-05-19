@@ -234,7 +234,13 @@ create this yourself during rehearsal — see [DEMO-SCRIPT.md](./demo/DEMO-SCRIP
 
 ---
 
+
 ## License
 
-MIT — see [LICENSE](./LICENSE). Use it, fork it, present it. Just don't ship the
-`FakeDeploymentService` to prod 😉
+This repo includes an MIT License for maximum reuse and sharing. If you are the sole author and do not require an explicit license, you may remove the LICENSE file and this section. However, including an open-source license is recommended for clarity if you intend others to use or fork your code.
+
+---
+
+## Dry-run checklist (demo rehearsal)
+
+The dry-run script covers the full demo flow. Optionally, if time permits, you can use the [MCP Inspector](https://www.npmjs.com/package/@modelcontextprotocol/inspector) to validate the MCP tools surface (see the private dry-run checklist for details).
