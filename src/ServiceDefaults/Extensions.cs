@@ -102,8 +102,12 @@ public static class Extensions
         // registration conflict that crashes the worker (exit 134 / SIGABRT)
         // with `OptionsValidationException: Application Insights SDK has not
         // been added`. Detect the Functions worker and skip UseAzureMonitor.
-        var isFunctionsWorker = !string.IsNullOrEmpty(
-            Environment.GetEnvironmentVariable("FUNCTIONS_WORKER_RUNTIME"));
+        // We check several env vars because Flex Consumption may not propagate
+        // FUNCTIONS_WORKER_RUNTIME to the isolated worker process.
+        var isFunctionsWorker =
+            !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("FUNCTIONS_WORKER_RUNTIME"))
+            || !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("FUNCTIONS_EXTENSION_VERSION"))
+            || !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("AzureWebJobsScriptRoot"));
 
         if (!string.IsNullOrWhiteSpace(appInsights) && !isFunctionsWorker)
         {
