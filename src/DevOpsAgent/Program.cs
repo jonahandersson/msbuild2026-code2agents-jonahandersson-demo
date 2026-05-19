@@ -67,32 +67,52 @@ var deploymentMcpTool = ResponseTool.CreateMcpTool(
         GlobalMcpToolCallApprovalPolicy.NeverRequireApproval));
 
 // --- 3. Create the agent on the Foundry side ---
-ProjectsAgentVersion agentVersion =
-    await aiProjectClient.AgentAdministrationClient.CreateAgentVersionAsync(
-        agentName: "DevOpsRollbackAgent",
-        options: new ProjectsAgentVersionCreationOptions(
-            new DeclarativeAgentDefinition(model: foundryModel)
-            {
-                Instructions = """
-                    You are a senior Site Reliability Engineer.
-                    When a deployment fails, you:
-                      1. Call get_recent_deployments to find the failing deployment.
-                      2. Call diagnose_deployment on the most recent failure.
-                      3. If rollback is recommended, call create_rollback_pr
-                         targeting the last_known_good_commit_sha from the diagnosis.
-                      4. Summarize what you did, including the PR URL.
+ProjectsAgentVersion agentVersion;
+AIAgent agent;
+try
+{
+    agentVersion =
+        await aiProjectClient.AgentAdministrationClient.CreateAgentVersionAsync(
+            agentName: "DevOpsRollbackAgent",
+            options: new ProjectsAgentVersionCreationOptions(
+                new DeclarativeAgentDefinition(model: foundryModel)
+                {
+                    Instructions = """
+                        You are a senior Site Reliability Engineer.
+                        When a deployment fails, you:
+                          1. Call get_recent_deployments to find the failing deployment.
+                          2. Call diagnose_deployment on the most recent failure.
+                          3. If rollback is recommended, call create_rollback_pr
+                             targeting the last_known_good_commit_sha from the diagnosis.
+                          4. Summarize what you did, including the PR URL.
 
-                    Rules:
-                      - Never roll back without diagnosing first.
-                      - Always include a clear, human-readable reason in the PR.
-                      - If the diagnosis says rollback is NOT recommended, explain
-                        what you'd do instead and stop.
-                    Be concise. Avoid filler.
-                    """,
-                Tools = { deploymentMcpTool }
-            }));
+                        Rules:
+                          - Never roll back without diagnosing first.
+                          - Always include a clear, human-readable reason in the PR.
+                          - If the diagnosis says rollback is NOT recommended, explain
+                            what you'd do instead and stop.
+                        Be concise. Avoid filler.
+                        """,
+                    Tools = { deploymentMcpTool }
+                }));
 
-AIAgent agent = aiProjectClient.AsAIAgent(agentVersion);
+    agent = aiProjectClient.AsAIAgent(agentVersion);
+}
+catch (Exception ex)
+{
+    logger.LogError(ex,
+        "Failed to create Foundry agent (model={Model}, endpoint={Endpoint}). " +
+        "Verify FOUNDRY_PROJECT_ENDPOINT and FOUNDRY_MODEL, that you're logged in " +
+        "(`az login`), and that the model deployment exists.",
+        foundryModel, foundryEndpoint);
+    Console.Error.WriteLine();
+    Console.Error.WriteLine($"Could not start agent: {ex.Message}");
+    Console.Error.WriteLine(
+        "Check: model deployment name, Foundry endpoint, az login status, " +
+        "and that MCP_SERVER_URL is reachable.");
+    Environment.ExitCode = 1;
+    return;
+}
 
 try
 {

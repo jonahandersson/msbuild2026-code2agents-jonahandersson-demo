@@ -89,24 +89,24 @@ public static class Extensions
     private static IHostApplicationBuilder AddOpenTelemetryExporters(
         this IHostApplicationBuilder builder)
     {
-        // OTLP exporter — used by the Aspire dashboard locally.
-        var useOtlp = !string.IsNullOrWhiteSpace(
-            builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"]);
-
-        if (useOtlp)
-        {
-            builder.Services.AddOpenTelemetry().UseOtlpExporter();
-        }
-
-        // Azure Monitor exporter — ships traces, logs, and metrics to
-        // App Insights. The same telemetry the speaker shows on stage.
+        // Exporters are mutually exclusive: in Azure we ship to App Insights,
+        // locally we ship to the Aspire dashboard via OTLP. Registering both
+        // would dual-export every span and break per-trace billing.
         var appInsights = builder.Configuration[
             "APPLICATIONINSIGHTS_CONNECTION_STRING"];
 
         if (!string.IsNullOrWhiteSpace(appInsights))
         {
+            // Azure Monitor exporter \u2014 ships traces, logs, and metrics to
+            // App Insights. The same telemetry the speaker shows on stage.
             builder.Services.AddOpenTelemetry()
                 .UseAzureMonitor(o => o.ConnectionString = appInsights);
+        }
+        else if (!string.IsNullOrWhiteSpace(
+            builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"]))
+        {
+            // OTLP exporter \u2014 used by the Aspire dashboard locally.
+            builder.Services.AddOpenTelemetry().UseOtlpExporter();
         }
 
         return builder;

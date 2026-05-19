@@ -1,5 +1,6 @@
 {
   "version": "2.0",
+  "functionTimeout": "00:05:00",
   "logging": {
     "applicationInsights": {
       "samplingSettings": {
@@ -15,6 +16,7 @@
   },
   "extensions": {
     "mcp": {
+      "version": "1.0.0",
       "instructions": "Tools to investigate and roll back failed deployments.",
       "serverName": "Deployment Ops MCP",
       "serverVersion": "1.0.0"

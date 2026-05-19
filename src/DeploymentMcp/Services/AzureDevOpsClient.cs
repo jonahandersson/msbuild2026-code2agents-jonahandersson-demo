@@ -2,8 +2,6 @@ using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using Azure.Core;
-using Azure.Identity;
 using DeploymentMcp.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -11,36 +9,36 @@ using Microsoft.Extensions.Options;
 namespace DeploymentMcp.Services;
 
 /// <summary>
-/// The real Azure DevOps client. Uses <see cref="DefaultAzureCredential"/> so the
-/// same code runs locally (your az CLI login) and in Azure (Managed Identity).
+/// The real Azure DevOps client. Uses <see cref="Azure.Identity.DefaultAzureCredential"/>
+/// via <see cref="AzureDevOpsAuthHandler"/> so the same code runs locally
+/// (your az CLI login) and in Azure (Managed Identity).
 ///
 /// **No PATs. No connection strings. That's the production story.**
+///
+/// Auth is injected per-request by the handler chained onto the typed
+/// <see cref="HttpClient"/> in <c>Program.cs</c>. Tokens are cached inside
+/// the handler (5-minute refresh skew), so this class never touches credentials.
 /// </summary>
 public sealed class AzureDevOpsClient(
     HttpClient http,
     IOptions<AzureDevOpsOptions> options,
     ILogger<AzureDevOpsClient> logger) : IDeploymentService
 {
-    // Azure DevOps resource ID — same value in every Entra tenant.
-    private const string AzureDevOpsResourceId =
-        "499b84ac-1321-427f-aa17-267ca6975798";
-
-    private static readonly string[] Scopes =
-        [$"{AzureDevOpsResourceId}/.default"];
-
+    // Azure DevOps API returns camelCase JSON; our DTOs use PascalCase.
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNameCaseInsensitive = true,
     };
 
-    private readonly TokenCredential _credential = new DefaultAzureCredential();
+    // Git SHAs are hex; we reject anything else before slicing or branching.
+    private static readonly Regex HexShaPattern =
+        new("^[a-fA-F0-9]+$", RegexOptions.Compiled);
+
     private readonly AzureDevOpsOptions _opts = options.Value;
 
     public async Task<IReadOnlyList<Deployment>> GetRecentAsync(
         string repo, string branch, int take, CancellationToken cancellationToken)
     {
-        await AddBearerTokenAsync(cancellationToken);
-
         var url =
             $"{_opts.OrgUrl}/{_opts.Project}/_apis/build/builds" +
             $"?repositoryId={Uri.EscapeDataString(repo)}" +
@@ -79,10 +77,8 @@ public sealed class AzureDevOpsClient(
         //   2. Pull the failing log content + pattern-match a root cause
         //   3. Find the most recent successful build → that's the rollback target
         //
-        // Each step is independent. If any step fails partially, we still
-        // return a diagnosis — just with whichever fields we could fill in.
-
-        await AddBearerTokenAsync(cancellationToken);
+        // Each step is independent. Today the first failed step short-circuits
+        // to a Fallback diagnosis; see the note on GetBuildAsync below.
 
         logger.LogInformation(
             "Diagnosing deployment {DeploymentId}", deploymentId);
@@ -193,8 +189,6 @@ public sealed class AzureDevOpsClient(
     private async Task<string> FetchLogContentAsync(
         string logUrl, int maxBytes, CancellationToken cancellationToken)
     {
-        await AddBearerTokenAsync(cancellationToken);
-
         try
         {
             using var response = await http.GetAsync(
@@ -378,10 +372,13 @@ public sealed class AzureDevOpsClient(
         string repo, string targetCommit, string reason,
         CancellationToken cancellationToken)
     {
-        await AddBearerTokenAsync(cancellationToken);
+        ArgumentException.ThrowIfNullOrWhiteSpace(repo);
+        ArgumentException.ThrowIfNullOrWhiteSpace(reason);
+        ValidateSha(targetCommit);
 
         // 1. Create a rollback branch at targetCommit
-        var branchName = $"rollback/auto-{targetCommit[..7]}";
+        var shortSha = targetCommit[..7];
+        var branchName = $"rollback/auto-{shortSha}";
 
         var refsBody = new[]
         {
@@ -397,16 +394,18 @@ public sealed class AzureDevOpsClient(
             $"{_opts.OrgUrl}/{_opts.Project}/_apis/git/repositories/" +
             $"{repo}/refs?api-version=7.1";
 
-        var refsResponse = await http.PostAsJsonAsync(
-            refsUrl, refsBody, JsonOptions, cancellationToken);
-        refsResponse.EnsureSuccessStatusCode();
+        using (var refsResponse = await http.PostAsJsonAsync(
+            refsUrl, refsBody, JsonOptions, cancellationToken))
+        {
+            refsResponse.EnsureSuccessStatusCode();
+        }
 
         // 2. Open the PR
         var prBody = new
         {
             sourceRefName = $"refs/heads/{branchName}",
             targetRefName = "refs/heads/main",
-            title = $"Rollback {repo} to {targetCommit[..7]} — automated by agent",
+            title = $"Rollback {repo} to {shortSha} — automated by agent",
             description = reason,
         };
 
@@ -414,7 +413,7 @@ public sealed class AzureDevOpsClient(
             $"{_opts.OrgUrl}/{_opts.Project}/_apis/git/repositories/" +
             $"{repo}/pullrequests?api-version=7.1";
 
-        var prResponse = await http.PostAsJsonAsync(
+        using var prResponse = await http.PostAsJsonAsync(
             prUrl, prBody, JsonOptions, cancellationToken);
         prResponse.EnsureSuccessStatusCode();
 
@@ -431,14 +430,16 @@ public sealed class AzureDevOpsClient(
             TargetBranch: "main");
     }
 
-    private async Task AddBearerTokenAsync(CancellationToken cancellationToken)
+    private static void ValidateSha(string sha)
     {
-        var token = await _credential.GetTokenAsync(
-            new TokenRequestContext(Scopes), cancellationToken);
-
-        http.DefaultRequestHeaders.Authorization =
-            new System.Net.Http.Headers.AuthenticationHeaderValue(
-                "Bearer", token.Token);
+        if (string.IsNullOrWhiteSpace(sha) ||
+            sha.Length < 7 ||
+            !HexShaPattern.IsMatch(sha))
+        {
+            throw new ArgumentException(
+                "targetCommit must be a hex SHA of at least 7 characters.",
+                nameof(sha));
+        }
     }
 
     private static string MapStatus(string? result, string? status) =>
