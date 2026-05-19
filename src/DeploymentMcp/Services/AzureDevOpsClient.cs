@@ -36,12 +36,21 @@ public sealed class AzureDevOpsClient(
 
     private readonly AzureDevOpsOptions _opts = options.Value;
 
+    // Repo name -> GUID cache. The AzDO Builds API requires the repository
+    // GUID + repositoryType=TfsGit; passing the repo name returns 400.
+    private readonly Dictionary<string, string> _repoIdCache =
+        new(StringComparer.OrdinalIgnoreCase);
+    private readonly SemaphoreSlim _repoIdLock = new(1, 1);
+
     public async Task<IReadOnlyList<Deployment>> GetRecentAsync(
         string repo, string branch, int take, CancellationToken cancellationToken)
     {
+        var repoId = await ResolveRepoIdAsync(repo, cancellationToken);
+
         var url =
             $"{_opts.OrgUrl}/{_opts.Project}/_apis/build/builds" +
-            $"?repositoryId={Uri.EscapeDataString(repo)}" +
+            $"?repositoryId={repoId}" +
+            "&repositoryType=TfsGit" +
             $"&branchName=refs/heads/{Uri.EscapeDataString(branch)}" +
             $"&$top={take}" +
             "&api-version=7.1";
@@ -65,7 +74,7 @@ public sealed class AzureDevOpsClient(
                 Status: MapStatus(b.Result, b.Status),
                 StartedAt: b.StartTime ?? DateTimeOffset.UtcNow,
                 FinishedAt: b.FinishTime,
-                FailureMessage: b.Result == "failed" ? b.ValidationResults : null))
+                FailureMessage: null))
             .ToList();
     }
 
@@ -98,7 +107,7 @@ public sealed class AzureDevOpsClient(
 
         // --- 3. Last known-good commit ---
         var lastGoodSha = await FindLastKnownGoodCommitAsync(
-            build.RepositoryId, build.SourceBranch, deploymentId, cancellationToken);
+            build.Repository.Id, build.SourceBranch, deploymentId, cancellationToken);
 
         var rollbackRecommended =
             !string.IsNullOrEmpty(lastGoodSha) &&
@@ -289,6 +298,7 @@ public sealed class AzureDevOpsClient(
         var url =
             $"{_opts.OrgUrl}/{_opts.Project}/_apis/build/builds" +
             $"?repositoryId={Uri.EscapeDataString(repositoryId)}" +
+            "&repositoryType=TfsGit" +
             $"&branchName=refs/heads/{Uri.EscapeDataString(branch)}" +
             "&resultFilter=succeeded" +
             "&$top=10" +
@@ -442,6 +452,44 @@ public sealed class AzureDevOpsClient(
         }
     }
 
+    private async Task<string> ResolveRepoIdAsync(
+        string repo, CancellationToken cancellationToken)
+    {
+        if (_repoIdCache.TryGetValue(repo, out var cached))
+        {
+            return cached;
+        }
+
+        await _repoIdLock.WaitAsync(cancellationToken);
+        try
+        {
+            if (_repoIdCache.TryGetValue(repo, out cached))
+            {
+                return cached;
+            }
+
+            var url =
+                $"{_opts.OrgUrl}/{_opts.Project}/_apis/git/repositories/" +
+                $"{Uri.EscapeDataString(repo)}?api-version=7.1";
+
+            var info = await http.GetFromJsonAsync<GitRepoInfo>(
+                url, JsonOptions, cancellationToken);
+
+            if (info is null || string.IsNullOrEmpty(info.Id))
+            {
+                throw new InvalidOperationException(
+                    $"Could not resolve repository id for '{repo}'.");
+            }
+
+            _repoIdCache[repo] = info.Id;
+            return info.Id;
+        }
+        finally
+        {
+            _repoIdLock.Release();
+        }
+    }
+
     private static string MapStatus(string? result, string? status) =>
         (result?.ToLowerInvariant(), status?.ToLowerInvariant()) switch
         {
@@ -461,8 +509,7 @@ public sealed class AzureDevOpsClient(
         string? Status,
         string? SourceVersion,
         DateTimeOffset? StartTime,
-        DateTimeOffset? FinishTime,
-        string? ValidationResults);
+        DateTimeOffset? FinishTime);
 
     private sealed record BuildDetail(
         int Id,
@@ -470,7 +517,9 @@ public sealed class AzureDevOpsClient(
         string? Status,
         string SourceVersion,
         string SourceBranch,
-        string RepositoryId);
+        BuildRepositoryRef Repository);
+
+    private sealed record BuildRepositoryRef(string Id, string? Name);
 
     private sealed record BuildLogsResponse(BuildLogDto[] Value);
 
@@ -480,4 +529,6 @@ public sealed class AzureDevOpsClient(
         string Url);
 
     private sealed record PullRequestResponse(int PullRequestId, string Title);
+
+    private sealed record GitRepoInfo(string Id, string Name);
 }

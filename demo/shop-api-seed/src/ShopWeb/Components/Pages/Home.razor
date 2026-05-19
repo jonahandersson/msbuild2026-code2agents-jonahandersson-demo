@@ -1,0 +1,55 @@
+@page "/"
+@rendermode InteractiveServer
+@using Microsoft.EntityFrameworkCore
+@using ShopApi.Models
+@using ShopWeb.Data
+@inject IDbContextFactory<ShopWebDbContext> DbFactory
+
+<PageTitle>Catalog · Build 2026 Dev eStore</PageTitle>
+
+<section class="hero">
+    <h1>Built by developers. For developers.</h1>
+    <p class="hero-sub">Twelve items. Zero affiliate links. Ships from a service running on Azure Functions.</p>
+</section>
+
+@if (_products is null)
+{
+    <p class="muted">Loading catalog…</p>
+}
+else
+{
+    <div class="grid">
+        @foreach (var p in _products)
+        {
+            <a class="card" href="@($"/product/{p.Id}")">
+                <div class="card-image" aria-hidden="true">@p.ImageEmoji</div>
+                <div class="card-body">
+                    <div class="card-cat">@p.Category</div>
+                    <h2 class="card-title">@p.Name</h2>
+                    <p class="card-tagline">@p.Tagline</p>
+                    <div class="card-foot">
+                        <span class="price">$@p.Price.ToString("0.00")</span>
+                        @if (p.StockOnHand < 50)
+                        {
+                            <span class="stock low">Only @p.StockOnHand left</span>
+                        }
+                        else
+                        {
+                            <span class="stock">In stock</span>
+                        }
+                    </div>
+                </div>
+            </a>
+        }
+    </div>
+}
+
+@code {
+    private List<Product>? _products;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await using var db = await DbFactory.CreateDbContextAsync();
+        _products = await db.Products.OrderBy(p => p.Id).ToListAsync();
+    }
+}

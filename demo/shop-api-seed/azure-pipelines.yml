@@ -16,6 +16,7 @@ pool:
 variables:
   dotnetVersion: '10.0.x'
   buildConfiguration: 'Release'
+  solution: 'ShopApi.slnx'
 
 stages:
   - stage: Build
@@ -30,13 +31,13 @@ stages:
               version: $(dotnetVersion)
               includePreviewVersions: true
 
-          - script: dotnet restore
+          - script: dotnet restore $(solution)
             displayName: 'dotnet restore'
 
-          - script: dotnet build --configuration $(buildConfiguration) --no-restore
+          - script: dotnet build $(solution) --configuration $(buildConfiguration) --no-restore
             displayName: 'dotnet build'
 
-          - script: dotnet test --configuration $(buildConfiguration) --no-build --logger trx
+          - script: dotnet test $(solution) --configuration $(buildConfiguration) --no-build --logger trx
             displayName: 'dotnet test'
 
           - task: PublishTestResults@2

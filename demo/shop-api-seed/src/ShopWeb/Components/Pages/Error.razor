@@ -1,0 +1,19 @@
+@page "/Error"
+@using System.Diagnostics
+
+<PageTitle>Something went wrong</PageTitle>
+
+<h1>Something went wrong.</h1>
+<p>The storefront hit an unexpected error. Try refreshing the page.</p>
+
+@if (!string.IsNullOrEmpty(RequestId))
+{
+    <p><strong>Request ID:</strong> <code>@RequestId</code></p>
+}
+
+@code {
+    [CascadingParameter] private HttpContext? HttpContext { get; set; }
+
+    private string? RequestId =>
+        Activity.Current?.Id ?? HttpContext?.TraceIdentifier;
+}

@@ -1,0 +1,58 @@
+@page "/product/{Id:int}"
+@rendermode InteractiveServer
+@using Microsoft.EntityFrameworkCore
+@using ShopApi.Models
+@using ShopWeb.Data
+@inject IDbContextFactory<ShopWebDbContext> DbFactory
+@inject NavigationManager Nav
+
+<PageTitle>@(_product?.Name ?? "Product") · Build 2026 Dev eStore</PageTitle>
+
+@if (_loading)
+{
+    <p class="muted">Loading…</p>
+}
+else if (_product is null)
+{
+    <p class="muted">Sorry — product not found.</p>
+    <a class="btn ghost" href="/">Back to catalog</a>
+}
+else
+{
+    <a class="back" href="/">← Catalog</a>
+    <article class="detail">
+        <div class="detail-image" aria-hidden="true">@_product.ImageEmoji</div>
+        <div class="detail-body">
+            <div class="card-cat">@_product.Category · @_product.Sku</div>
+            <h1 class="detail-title">@_product.Name</h1>
+            <p class="detail-tagline">@_product.Tagline</p>
+            <p class="detail-desc">@_product.Description</p>
+            <div class="detail-foot">
+                <span class="price big">$@_product.Price.ToString("0.00")</span>
+                <button class="btn primary" @onclick="AddToCart" disabled="@_added">
+                    @(_added ? "Added ✓" : "Add to cart")
+                </button>
+            </div>
+            <p class="muted small">@_product.StockOnHand in stock</p>
+        </div>
+    </article>
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private Product? _product;
+    private bool _loading = true;
+    private bool _added;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _loading = true;
+        _added = false;
+        await using var db = await DbFactory.CreateDbContextAsync();
+        _product = await db.Products.FirstOrDefaultAsync(p => p.Id == Id);
+        _loading = false;
+    }
+
+    private void AddToCart() => _added = true;
+}

@@ -1,0 +1,94 @@
+# shop-web release pipeline (CD)
+#
+# Builds the Blazor Server storefront and deploys it to the App Service that
+# was provisioned by Bicep (`app-shopweb-<token>`). Unlike `azure-pipelines.yml`
+# for shop-api (which is intentionally a build-only / fail-on-purpose pipeline
+# for the agent rollback demo), this pipeline ships every push to main.
+#
+# Prereqs (one-time, in AzDO project settings):
+#   1. Service connection: Project Settings -> Service connections -> New ->
+#      Azure Resource Manager -> Workload Identity Federation (automatic).
+#      Scope: the resource group hosting app-shopweb-*.
+#      Name it `azure-shopweb` (matches `azureServiceConnection` below).
+#   2. Grant the resulting service principal `Website Contributor` on the
+#      shop-web App Service (or the whole resource group).
+
+trigger:
+  branches:
+    include:
+      - main
+  paths:
+    include:
+      - src/ShopWeb/*
+      - azure-pipelines-shopweb.yml
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  dotnetVersion: '10.0.x'
+  buildConfiguration: 'Release'
+  project: 'src/ShopWeb/ShopWeb.csproj'
+  # Override these at queue-time or via pipeline variables if your env differs.
+  azureServiceConnection: 'sc-azure-shopweb'
+  appServiceName: 'app-shopweb-mcpdemork5lpkrhjgtl6'
+
+stages:
+  - stage: Build
+    displayName: 'Build ShopWeb'
+    jobs:
+      - job: BuildPublish
+        displayName: 'dotnet publish'
+        steps:
+          - task: UseDotNet@2
+            displayName: 'Install .NET SDK'
+            inputs:
+              version: $(dotnetVersion)
+              includePreviewVersions: true
+
+          - script: dotnet restore $(project)
+            displayName: 'dotnet restore'
+
+          - script: >
+              dotnet publish $(project)
+              --configuration $(buildConfiguration)
+              --no-restore
+              --output $(Build.ArtifactStagingDirectory)/shopweb
+            displayName: 'dotnet publish'
+
+          - task: ArchiveFiles@2
+            displayName: 'Zip published output'
+            inputs:
+              rootFolderOrFile: '$(Build.ArtifactStagingDirectory)/shopweb'
+              includeRootFolder: false
+              archiveType: 'zip'
+              archiveFile: '$(Build.ArtifactStagingDirectory)/shopweb.zip'
+              replaceExistingArchive: true
+
+          - publish: '$(Build.ArtifactStagingDirectory)/shopweb.zip'
+            artifact: shopweb
+
+  - stage: Deploy
+    displayName: 'Deploy to App Service'
+    dependsOn: Build
+    condition: succeeded()
+    jobs:
+      - deployment: DeployShopWeb
+        displayName: 'AzureWebApp deploy'
+        environment: 'shop-web-production'
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - download: current
+                  artifact: shopweb
+
+                - task: AzureWebApp@1
+                  displayName: 'Deploy to $(appServiceName)'
+                  inputs:
+                    azureSubscription: '$(azureServiceConnection)'
+                    appType: 'webAppLinux'
+                    appName: '$(appServiceName)'
+                    package: '$(Pipeline.Workspace)/shopweb/shopweb.zip'
+                    runtimeStack: 'DOTNETCORE|10.0'
+                    startUpCommand: 'dotnet ShopWeb.dll'

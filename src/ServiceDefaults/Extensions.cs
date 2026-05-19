@@ -89,9 +89,10 @@ public static class Extensions
     private static IHostApplicationBuilder AddOpenTelemetryExporters(
         this IHostApplicationBuilder builder)
     {
-        // Exporters are mutually exclusive: in Azure we ship to App Insights,
-        // locally we ship to the Aspire dashboard via OTLP. Registering both
-        // would dual-export every span and break per-trace billing.
+        // Both exporters can coexist: App Insights is the production-grade
+        // queryable backend, the Aspire dashboard (local OR cloud-deployed
+        // as an ACA) gives a live waterfall view. When both env vars are set
+        // every span fans out to both — that's intentional for the demo.
         var aiConnectionString = builder.Configuration[
             "APPLICATIONINSIGHTS_CONNECTION_STRING"];
         if (!string.IsNullOrWhiteSpace(aiConnectionString))
@@ -102,10 +103,11 @@ public static class Extensions
             // ConfigureFunctionsApplicationInsights or the worker SIGABRTs.
             builder.Services.AddOpenTelemetry().UseAzureMonitor();
         }
-        else if (!string.IsNullOrWhiteSpace(
+
+        if (!string.IsNullOrWhiteSpace(
             builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"]))
         {
-            // OTLP exporter — used by the Aspire dashboard locally.
+            // OTLP exporter — Aspire dashboard (local AppHost or cloud ACA).
             builder.Services.AddOpenTelemetry().UseOtlpExporter();
         }
 

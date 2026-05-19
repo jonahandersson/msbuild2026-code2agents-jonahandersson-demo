@@ -93,6 +93,7 @@ if ($needsPush) {
         Write-Host "  Commit 3/4: add tests + pipeline (last-known-good)"
         Copy-Item "$SeedSourcePath/tests"               "." -Recurse -Force
         Copy-Item "$SeedSourcePath/azure-pipelines.yml" "." -Force
+        Copy-Item "$SeedSourcePath/ShopApi.slnx"        "." -Force
         Copy-Item "$SeedSourcePath/scripts"             "." -Recurse -Force
         git add -A | Out-Null; git commit -m 'Add tests and CI pipeline' --quiet
         $lastGoodSha = (git rev-parse HEAD).Trim()
@@ -141,6 +142,79 @@ if (-not $pipeline) {
 } else {
     Write-Host "  Exists. id: $($pipeline.id)"
 }
+
+# --- ShopWeb release pipeline ---
+# The repo already contains src/ShopWeb (pushed in commit 2/4). We ship the
+# pipeline YAML separately so it can be added to an existing repo idempotently.
+
+function Ensure-FileOnMain {
+    param(
+        [Parameter(Mandatory)][string]$RepoId,
+        [Parameter(Mandatory)][string]$Path,        # e.g. '/azure-pipelines-shopweb.yml'
+        [Parameter(Mandatory)][string]$LocalFile,
+        [Parameter(Mandatory)][string]$CommitMessage
+    )
+
+    # Does the file already exist on main?
+    $exists = $true
+    try {
+        Invoke-AzDo -Url "$orgUrl/$ProjectName/_apis/git/repositories/$RepoId/items`?path=$([uri]::EscapeDataString($Path))&versionDescriptor.version=main&api-version=7.1" | Out-Null
+    } catch { $exists = $false }
+    if ($exists) { Write-Host "  $Path already on main; skipping commit."; return }
+
+    # Need the current tip of main for the push's oldObjectId.
+    $mainRef = (Invoke-AzDo -Url "$orgUrl/$ProjectName/_apis/git/repositories/$RepoId/refs`?filter=heads/main&api-version=7.1").value | Select-Object -First 1
+    if (-not $mainRef) { throw "main ref not found for repo $RepoId" }
+
+    $content = Get-Content -LiteralPath $LocalFile -Raw
+    $pushBody = @{
+        refUpdates = @(@{ name = 'refs/heads/main'; oldObjectId = $mainRef.objectId })
+        commits = @(@{
+            comment = $CommitMessage
+            changes = @(@{
+                changeType = 'add'
+                item       = @{ path = $Path }
+                newContent = @{ content = $content; contentType = 'rawtext' }
+            })
+        })
+    }
+    $push = Invoke-AzDo -Method POST -Url "$orgUrl/$ProjectName/_apis/git/repositories/$RepoId/pushes`?api-version=7.1" -Body $pushBody
+    Write-Host "  Pushed $Path (commit $($push.commits[0].commitId.Substring(0,8)))"
+}
+
+Write-Host ""
+Write-Host "==> Ensuring ShopWeb pipeline YAML on main"
+Ensure-FileOnMain -RepoId $repo.id `
+    -Path '/azure-pipelines-shopweb.yml' `
+    -LocalFile (Join-Path $SeedSourcePath 'azure-pipelines-shopweb.yml') `
+    -CommitMessage 'Add ShopWeb release pipeline'
+
+Write-Host ""
+Write-Host "==> Ensuring pipeline 'shop-web-CD'"
+$webPipelineName = 'shop-web-CD'
+$pipelines = (Invoke-AzDo -Url "$orgUrl/$ProjectName/_apis/pipelines`?api-version=7.1").value
+$webPipeline = $pipelines | Where-Object { $_.name -eq $webPipelineName }
+if (-not $webPipeline) {
+    $body = @{
+        name = $webPipelineName
+        folder = '\\'
+        configuration = @{
+            type = 'yaml'
+            path = 'azure-pipelines-shopweb.yml'
+            repository = @{
+                id = $repo.id
+                name = $RepoName
+                type = 'azureReposGit'
+            }
+        }
+    }
+    $webPipeline = Invoke-AzDo -Method POST -Url "$orgUrl/$ProjectName/_apis/pipelines`?api-version=7.1" -Body $body
+    Write-Host "  Created. id: $($webPipeline.id)"
+} else {
+    Write-Host "  Exists. id: $($webPipeline.id)"
+}
+Write-Host "  NOTE: First run will fail until you create the 'azure-shopweb' service connection."
+Write-Host "        See header of azure-pipelines-shopweb.yml for one-time setup."
 
 # --- Managed Identity (optional) ---
 if ($MiObjectId -and $MiDisplayName) {

@@ -102,6 +102,96 @@ resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
 }
 
 // =============================================================================
+// Aspire Dashboard on Azure Container Apps
+//
+// Standalone dashboard image (mcr.microsoft.com/dotnet/aspire-dashboard:9.0).
+// Acts as an OTLP sink so the deployed Function App ships traces here too —
+// you get the same dashboard UX in the cloud that Aspire gives you locally.
+//
+// Two ports exposed:
+//   18888 — web UI (BrowserToken auth, https)
+//   18889 — OTLP gRPC ingest (ApiKey auth, http2)
+// =============================================================================
+
+// Deterministic-but-opaque key for OTLP ingest. Rotate by changing a tag.
+var otlpApiKey = uniqueString(resourceGroup().id, 'otlp', environmentName)
+
+resource cae 'Microsoft.App/managedEnvironments@2024-03-01' = {
+  name: 'cae-${resourceToken}'
+  location: location
+  tags: tags
+  properties: {
+    appLogsConfiguration: {
+      destination: 'log-analytics'
+      logAnalyticsConfiguration: {
+        customerId: logWorkspace.properties.customerId
+        sharedKey: logWorkspace.listKeys().primarySharedKey
+      }
+    }
+  }
+}
+
+resource aspireDashboard 'Microsoft.App/containerApps@2024-03-01' = {
+  name: 'ca-aspire-${resourceToken}'
+  location: location
+  tags: tags
+  properties: {
+    environmentId: cae.id
+    configuration: {
+      ingress: {
+        external: true
+        targetPort: 18888
+        transport: 'http2'
+        additionalPortMappings: [
+          {
+            // OTLP gRPC ingest endpoint (Function App ships traces here).
+            external: true
+            targetPort: 18889
+            exposedPort: 18889
+          }
+        ]
+      }
+      secrets: [
+        {
+          name: 'otlp-apikey'
+          value: otlpApiKey
+        }
+      ]
+    }
+    template: {
+      containers: [
+        {
+          name: 'aspire-dashboard'
+          image: 'mcr.microsoft.com/dotnet/aspire-dashboard:9.0'
+          resources: {
+            cpu: json('0.5')
+            memory: '1Gi'
+          }
+          env: [
+            // UI auth — visitors need the dashboard's printed browser token.
+            // Switch to 'Unsecured' only if you'll demo in a private network.
+            { name: 'Dashboard__Frontend__AuthMode', value: 'BrowserToken' }
+            // OTLP auth — Functions identity sends this key in headers.
+            { name: 'Dashboard__Otlp__AuthMode', value: 'ApiKey' }
+            {
+              name: 'Dashboard__Otlp__PrimaryApiKey'
+              secretRef: 'otlp-apikey'
+            }
+            // Bind to all interfaces so ACA can route into the container.
+            { name: 'ASPNETCORE_URLS', value: 'http://+:18888' }
+            { name: 'DOTNET_DASHBOARD_OTLP_ENDPOINT_URL', value: 'http://+:18889' }
+          ]
+        }
+      ]
+      scale: {
+        minReplicas: 1
+        maxReplicas: 1
+      }
+    }
+  }
+}
+
+// =============================================================================
 // Microsoft Foundry — account + project + model deployment
 //
 // One-shot AI Foundry: the account holds the model deployments, the project
@@ -243,6 +333,21 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
           name: 'FOUNDRY_MODEL'
           value: foundryModelName
         }
+        // --- OTLP export to the Aspire Dashboard ACA ---
+        // ServiceDefaults registers the OTLP exporter when this is set, in
+        // addition to the Azure Monitor exporter. Traces fan out to both.
+        {
+          name: 'OTEL_EXPORTER_OTLP_ENDPOINT'
+          value: 'https://${aspireDashboard.properties.configuration.ingress.fqdn}:18889'
+        }
+        {
+          name: 'OTEL_EXPORTER_OTLP_PROTOCOL'
+          value: 'grpc'
+        }
+        {
+          name: 'OTEL_EXPORTER_OTLP_HEADERS'
+          value: 'x-otlp-api-key=${otlpApiKey}'
+        }
       ]
     }
   }
@@ -300,6 +405,78 @@ resource foundryAzureAiUser 'Microsoft.Authorization/roleAssignments@2022-04-01'
 // Outputs — azd uses these
 // =============================================================================
 
+// =============================================================================
+// ShopWeb — Blazor Server storefront on App Service Linux
+//
+// Visual prop for the demo: "this is the system the rollback agent protects."
+// Stateless Blazor Server + in-memory EF, B1 plan, single instance — plenty
+// for the talk and ~$13/mo. Independent of the MCP server and the failed
+// pipeline narrative on purpose.
+// =============================================================================
+
+resource shopWebPlan 'Microsoft.Web/serverfarms@2023-12-01' = {
+  name: 'plan-shopweb-${resourceToken}'
+  location: location
+  tags: tags
+  sku: { name: 'B1', tier: 'Basic' }
+  kind: 'linux'
+  properties: { reserved: true }
+}
+
+resource shopWeb 'Microsoft.Web/sites@2023-12-01' = {
+  name: 'app-shopweb-${resourceToken}'
+  location: location
+  kind: 'app,linux'
+  // azd matches this tag against the service name in azure.yaml.
+  tags: union(tags, {
+    'azd-service-name': 'shop-web'
+  })
+  properties: {
+    serverFarmId: shopWebPlan.id
+    httpsOnly: true
+    siteConfig: {
+      linuxFxVersion: 'DOTNETCORE|10.0'
+      alwaysOn: true
+      ftpsState: 'Disabled'
+      minTlsVersion: '1.2'
+      http20Enabled: true
+      healthCheckPath: '/'
+      appCommandLine: 'dotnet ShopWeb.dll'
+      appSettings: [
+        {
+          name: 'ASPNETCORE_ENVIRONMENT'
+          value: 'Production'
+        }
+        {
+          // Forwarded-Proto so Blazor builds correct https:// URLs.
+          name: 'ASPNETCORE_FORWARDEDHEADERS_ENABLED'
+          value: 'true'
+        }
+        {
+          // Ship ShopWeb traces into the same App Insights + Aspire dashboard.
+          name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
+          value: appInsights.properties.ConnectionString
+        }
+      ]
+    }
+  }
+}
+
+resource shopWebLogs 'Microsoft.Web/sites/config@2023-12-01' = {
+  parent: shopWeb
+  name: 'logs'
+  properties: {
+    applicationLogs: { fileSystem: { level: 'Information' } }
+    httpLogs:        { fileSystem: { enabled: true, retentionInDays: 3, retentionInMb: 35 } }
+    detailedErrorMessages: { enabled: true }
+    failedRequestsTracing: { enabled: true }
+  }
+}
+
+// =============================================================================
+// Outputs — azd uses these
+// =============================================================================
+
 output RESOURCE_GROUP_ID string         = resourceGroup().id
 output FUNCTION_APP_NAME string         = functionApp.name
 output FUNCTION_APP_HOSTNAME string     = functionApp.properties.defaultHostName
@@ -310,3 +487,9 @@ output FOUNDRY_ACCOUNT_NAME string      = foundryAccount.name
 output FOUNDRY_PROJECT_NAME string      = foundryProject.name
 output FOUNDRY_PROJECT_ENDPOINT string  = foundryProject.properties.endpoints['AI Foundry API']
 output FOUNDRY_MODEL string             = foundryModelName
+output ASPIRE_DASHBOARD_URL string      = 'https://${aspireDashboard.properties.configuration.ingress.fqdn}'
+output SHOP_WEB_APP_NAME string         = shopWeb.name
+output SHOP_WEB_URL string              = 'https://${shopWeb.properties.defaultHostName}'
+output SHOP_WEB_RESOURCE_GROUP string   = resourceGroup().name
+output ASPIRE_DASHBOARD_OTLP string     = 'https://${aspireDashboard.properties.configuration.ingress.fqdn}:18889'
+output SHOP_WEB_URL string              = 'https://${shopWeb.properties.defaultHostName}'

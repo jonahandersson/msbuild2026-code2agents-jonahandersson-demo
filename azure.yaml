@@ -10,6 +10,11 @@ services:
     language: dotnet
     host: function
 
+  shop-web:
+    project: ./demo/shop-api-seed/src/ShopWeb
+    language: dotnet
+    host: appservice
+
 infra:
   provider: bicep
   path: ./infra

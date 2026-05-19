@@ -130,6 +130,7 @@ try {
     Write-Host "  Commit 3/4: add tests + pipeline (will be last-known-good)"
     Copy-Item -Path "$SeedSourcePath/tests" -Destination "." -Recurse
     Copy-Item -Path "$SeedSourcePath/azure-pipelines.yml" -Destination "."
+    Copy-Item -Path "$SeedSourcePath/ShopApi.slnx" -Destination "."
     Copy-Item -Path "$SeedSourcePath/scripts" -Destination "." -Recurse
     git add -A | Out-Null
     git commit -m "Add tests and CI pipeline" --quiet

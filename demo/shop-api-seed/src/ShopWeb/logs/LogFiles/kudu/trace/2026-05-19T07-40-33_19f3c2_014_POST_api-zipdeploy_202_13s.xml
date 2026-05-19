@@ -1,0 +1,14 @@
+<step title="Incoming Request" date="2026-05-19T07:40:33.955" instance="19f3c2" url="/api/zipdeploy?isAsync=true" method="POST" type="request" pid="853,1,23" Accept="application/json" Host="app-shopweb-mcpdemork5lpkrhjgtl6.scm.azurewebsites.net" User-Agent="azsdk-go-zip-deploy/1.0.0 (go1.26.1-X:loopvar; Windows_NT),azdev/1.25.1 (Go go1.26.1-X:loopvar; windows/amd64)" Accept-Encoding="gzip" Authorization="Bea..." Content-Type="application/octet-stream" Content-Length="18207765" x-ms-correlation-request-id="f5feb8f644dfbcfabacd787956b5f9cf" X-ARR-LOG-ID="f5feb8f6-44df-bcfa-bacd-787956b5f9cf" CLIENT-IP="31.208.163.172:51669" X-SITE-DEPLOYMENT-ID="app-shopweb-mcpdemork5lpkrhjgtl6" WAS-DEFAULT-HOSTNAME="app-shopweb-mcpdemork5lpkrhjgtl6.scm.azurewebsites.net" X-AppService-Proto="https" X-Forwarded-TlsVersion="1.3" X-Original-Proto="http" X-WAWS-Unencoded-URL="/api/zipdeploy?isAsync=true" X-Client-IP="31.208.163.172" X-Client-Port="51669" X-Original-For="169.254.129.1:39363" >
+  <step title="ZipPushDeploy" date="2026-05-19T07:40:34.625" >
+    <step title="ZipDeploy. Extract zip." date="2026-05-19T07:40:35.157" /><!-- duration: 158ms -->
+    <step title="Starting PushDeployAsync" date="2026-05-19T07:40:35.619" /><!-- duration: 143ms -->
+    <step title="Writing artifact to /tmp/zipdeploy/bfa9392f-a7b2-4612-8b61-9c2b3787add0.zip" date="2026-05-19T07:40:36.434" >
+      <step title="Writing multipart request body to /tmp/zipdeploy/bfa9392f-a7b2-4612-8b61-9c2b3787add0.zip" date="2026-05-19T07:40:36.562" /><!-- duration: 85ms -->
+    </step><!-- duration: 8087ms -->
+    <step title="Start deployment in the background" date="2026-05-19T07:40:45.562" >
+      <step title="Acquiring Deployment Lock" date="2026-05-19T07:40:46.349" /><!-- duration: 10ms -->
+      <step title="Acquired Deployment Lock" date="2026-05-19T07:40:46.599" /><!-- duration: 20ms -->
+    </step><!-- duration: 1488ms -->
+  </step><!-- duration: 12457ms -->
+  <step title="Outgoing response" date="2026-05-19T07:40:47.201" type="response" statusCode="202" statusText="Accepted" /><!-- duration: 27ms -->
+</step><!-- duration: 13291ms -->
