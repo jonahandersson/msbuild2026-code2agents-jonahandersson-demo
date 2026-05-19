@@ -30,10 +30,10 @@ jobs:
         run: dotnet build --configuration Release --no-restore
 
       - name: Test
-        # No-ops cleanly when the solution contains no test projects.
-        # The demo/shop-api-seed/tests/ShopApi.Tests suite is intentionally
-        # outside the main .sln — it ships with the seed script, not the demo build.
-        run: dotnet test --configuration Release --no-build --verbosity normal
+        # Scope `dotnet test` to the only test project in the solution.
+        # Running it against the .sln invokes VSTest on every project, which
+        # fails on Aspire AppHost (no VSTest target) with MSB4057.
+        run: dotnet test demo/shop-api-seed/tests/ShopApi.Tests/ShopApi.Tests.csproj --configuration Release --no-build --verbosity normal
 
       - name: Verify Function packs
         run: dotnet publish src/DeploymentMcp/DeploymentMcp.csproj -c Release -o ./out/func
