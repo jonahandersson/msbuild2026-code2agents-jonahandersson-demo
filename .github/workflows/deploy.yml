@@ -4,6 +4,16 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      env_name:
+        description: 'azd environment name (overrides repo variable AZURE_ENV_NAME)'
+        required: false
+        default: ''
+      skip_provision:
+        description: 'Skip infra provision (deploy code only)'
+        type: boolean
+        required: false
+        default: false
 
 # OIDC: no client secrets needed.
 # Set these in repo → Settings → Secrets and variables → Actions:
@@ -23,6 +33,10 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     name: azd up
+    # Strategy A: gated by reviewer in repo Settings -> Environments -> azure-prod.
+    # Push to main queues this job; it pauses until a required reviewer approves.
+    # Manual workflow_dispatch runs also go through the same gate.
+    environment: azure-prod
 
     steps:
       - uses: actions/checkout@v4
@@ -39,21 +53,29 @@ jobs:
       - name: Azure login via OIDC
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
 
       - name: azd login (federated)
         run: |
           azd auth login \
-            --client-id "${{ secrets.AZURE_CLIENT_ID }}" \
-            --tenant-id "${{ secrets.AZURE_TENANT_ID }}" \
+            --client-id "${{ vars.AZURE_CLIENT_ID }}" \
+            --tenant-id "${{ vars.AZURE_TENANT_ID }}" \
             --federated-credential-provider github
 
       - name: Provision and deploy
-        run: azd up --no-prompt
+        # `azd up` = provision + deploy. When skip_provision=true we run
+        # `azd deploy` instead (faster code-only path for iteration days).
+        run: |
+          if [ "${{ inputs.skip_provision }}" = "true" ]; then
+            azd deploy --no-prompt
+          else
+            azd up --no-prompt
+          fi
         env:
-          AZURE_ENV_NAME: ${{ vars.AZURE_ENV_NAME }}
+          # Manual-dispatch env_name overrides the repo variable when provided.
+          AZURE_ENV_NAME: ${{ inputs.env_name != '' && inputs.env_name || vars.AZURE_ENV_NAME }}
           AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
-          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
           AZURE_NAME_PREFIX: ${{ vars.AZURE_NAME_PREFIX }}
