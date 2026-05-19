@@ -95,7 +95,17 @@ public static class Extensions
         var appInsights = builder.Configuration[
             "APPLICATIONINSIGHTS_CONNECTION_STRING"];
 
-        if (!string.IsNullOrWhiteSpace(appInsights))
+        // When running inside the Azure Functions isolated worker, the Functions
+        // host already wires Application Insights through
+        // `AddApplicationInsightsTelemetryWorkerService` + `ConfigureFunctionsApplicationInsights`.
+        // Layering UseAzureMonitor on top causes a TelemetryConfiguration
+        // registration conflict that crashes the worker (exit 134 / SIGABRT)
+        // with `OptionsValidationException: Application Insights SDK has not
+        // been added`. Detect the Functions worker and skip UseAzureMonitor.
+        var isFunctionsWorker = !string.IsNullOrEmpty(
+            Environment.GetEnvironmentVariable("FUNCTIONS_WORKER_RUNTIME"));
+
+        if (!string.IsNullOrWhiteSpace(appInsights) && !isFunctionsWorker)
         {
             // Azure Monitor exporter \u2014 ships traces, logs, and metrics to
             // App Insights. The same telemetry the speaker shows on stage.
