@@ -13,7 +13,7 @@ public sealed class AzureDevOpsOptions
     public const string SectionName = "AzureDevOps";
 
     [Required]
-    [Url]
+    [HttpsUrl]
     public string OrgUrl { get; init; } = string.Empty;
         // e.g. "https://dev.azure.com/contoso"
 
@@ -21,4 +21,34 @@ public sealed class AzureDevOpsOptions
     [MinLength(1)]
     public string Project { get; init; } = string.Empty;
         // e.g. "Shop"
+}
+
+/// <summary>
+/// Stricter than the built-in <see cref="UrlAttribute"/>: requires an
+/// absolute https:// URL. ADO calls go over the public internet and the
+/// access tokens we mint are bearer tokens \u2014 plain HTTP would leak them.
+/// </summary>
+[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field,
+    AllowMultiple = false)]
+internal sealed class HttpsUrlAttribute : ValidationAttribute
+{
+    protected override ValidationResult? IsValid(
+        object? value, ValidationContext validationContext)
+    {
+        if (value is not string s || string.IsNullOrWhiteSpace(s))
+        {
+            return new ValidationResult(
+                $"{validationContext.DisplayName} is required.");
+        }
+
+        if (!Uri.TryCreate(s, UriKind.Absolute, out var uri) ||
+            uri.Scheme != Uri.UriSchemeHttps)
+        {
+            return new ValidationResult(
+                $"{validationContext.DisplayName} must be an absolute " +
+                "https:// URL.");
+        }
+
+        return ValidationResult.Success;
+    }
 }

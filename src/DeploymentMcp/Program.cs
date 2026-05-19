@@ -45,7 +45,11 @@ if (!demoMode)
 
 // --- HTTP client for AzureDevOpsClient ---
 // Resilience is wired through ServiceDefaults' ConfigureHttpClientDefaults.
-builder.Services.AddHttpClient<AzureDevOpsClient>();
+// The bearer-token handler is per-request (no shared DefaultRequestHeaders
+// state) and caches the AccessToken until it's about to expire.
+builder.Services.AddTransient<AzureDevOpsAuthHandler>();
+builder.Services.AddHttpClient<AzureDevOpsClient>()
+    .AddHttpMessageHandler<AzureDevOpsAuthHandler>();
 
 // --- The deployment service ---
 // In DemoMode, swap the real Azure DevOps client for an in-memory fake.

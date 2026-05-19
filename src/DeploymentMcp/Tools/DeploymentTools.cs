@@ -41,6 +41,9 @@ public sealed class DeploymentTools(
 
         CancellationToken cancellationToken)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(repo);
+        ArgumentException.ThrowIfNullOrWhiteSpace(branch);
+
         using var scope = logger.BeginScope(new Dictionary<string, object>
         {
             ["Tool"] = "get_recent_deployments",
@@ -71,6 +74,8 @@ public sealed class DeploymentTools(
 
         CancellationToken cancellationToken)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(deploymentId);
+
         using var scope = logger.BeginScope(new Dictionary<string, object>
         {
             ["Tool"] = "diagnose_deployment",
@@ -111,6 +116,10 @@ public sealed class DeploymentTools(
 
         CancellationToken cancellationToken)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(repo);
+        ArgumentException.ThrowIfNullOrWhiteSpace(targetCommit);
+        ArgumentException.ThrowIfNullOrWhiteSpace(reason);
+
         using var scope = logger.BeginScope(new Dictionary<string, object>
         {
             ["Tool"] = "create_rollback_pr",

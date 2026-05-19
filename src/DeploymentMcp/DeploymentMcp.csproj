@@ -48,4 +48,22 @@
     <ProjectReference Include="..\ServiceDefaults\ServiceDefaults.csproj" />
   </ItemGroup>
 
+  <!--
+    KNOWN ISSUE: `func start` (Azure Functions Core Tools v4.10) on .NET 10
+    fails to load the MCP host extension (Microsoft.Azure.Functions.Extensions.Mcp
+    1.0.0). The host resets its AssemblyLoadContext to bin/output/.azurefunctions/
+    and can't resolve the v8 framework assemblies the extension binds against.
+    Bulk-seeding the entire .NET 8 framework into .azurefunctions/ resolves
+    the load errors but then trips a "Method not found" on TryAddSingleton in
+    Microsoft.Extensions.Azure v1.11 (DI.Abstractions version mismatch).
+    
+    Workaround for local dev: use the deployed Function App. See AppHost
+    Program.cs which now detects MCP_SERVER_URL and skips spawning local
+    func when set.
+    
+    Tracked upstream: https://github.com/Azure/azure-functions-dotnet-worker
+    Affected scope: local `func start` only. Deployed Linux Function Apps are
+    unaffected because Azure provides the v8 runtime globally.
+  -->
+
 </Project>
