@@ -25,6 +25,8 @@ stages:
       - job: BuildAndTest
         displayName: 'dotnet build + test'
         steps:
+          - checkout: self
+            clean: true
           - task: UseDotNet@2
             displayName: 'Install .NET SDK'
             inputs:
