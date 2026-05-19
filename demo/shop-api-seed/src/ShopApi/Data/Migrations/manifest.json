@@ -11,7 +11,7 @@
     "  - The agent's rollback PR will revert this file back to false."
   ],
   "name": "20260515_AddCustomerLoyalty",
-  "simulateTimeout": true,
-  "timeoutSeconds": 30,
+  "simulateTimeout": false,
+  "timeoutSeconds": 120,
   "expectedDuration": "5-10s in a healthy production deploy"
 }
