@@ -30,10 +30,6 @@ public sealed class AzureDevOpsClient(
         PropertyNameCaseInsensitive = true,
     };
 
-    // Git SHAs are hex; we reject anything else before slicing or branching.
-    private static readonly Regex HexShaPattern =
-        new("^[a-fA-F0-9]+$", RegexOptions.Compiled);
-
     private readonly AzureDevOpsOptions _opts = options.Value;
 
     // Repo name -> GUID cache. The AzDO Builds API requires the repository
@@ -440,17 +436,8 @@ public sealed class AzureDevOpsClient(
             TargetBranch: "main");
     }
 
-    private static void ValidateSha(string sha)
-    {
-        if (string.IsNullOrWhiteSpace(sha) ||
-            sha.Length < 7 ||
-            !HexShaPattern.IsMatch(sha))
-        {
-            throw new ArgumentException(
-                "targetCommit must be a hex SHA of at least 7 characters.",
-                nameof(sha));
-        }
-    }
+    private static void ValidateSha(string sha) =>
+        Validation.EnsureSha(sha, nameof(sha));
 
     private async Task<string> ResolveRepoIdAsync(
         string repo, CancellationToken cancellationToken)

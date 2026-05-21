@@ -1,0 +1,46 @@
+#
+# PSRule for Azure — repository configuration.
+# Docs: https://azure.github.io/PSRule.Rules.Azure/
+#
+# What this enforces in CI:
+#   - Bicep/ARM templates under infra/ are scanned every PR.
+#   - Azure Well-Architected Framework Security pillar rules
+#     (managed identity, no shared keys, HTTPS-only, RBAC, etc.).
+#   - Fails the build on any error-level rule.
+#
+
+# Use the Azure baseline tuned for 2024-09 (latest stable at demo time).
+include:
+  module:
+  - PSRule.Rules.Azure
+
+# Bind objects so rules can target Bicep-compiled resources.
+binding:
+  targetName:
+  - Name
+  - ResourceName
+  targetType:
+  - ResourceType
+  - type
+
+# Treat the Azure baseline as the minimum bar.
+rule:
+  baseline: Azure.GA_2024_09
+
+input:
+  pathIgnore:
+  # Ignore artefacts / non-Azure files.
+  - '**/bin/'
+  - '**/obj/'
+  - '**/node_modules/'
+  - '**/.azure/'
+  - 'demo/shop-api-seed/**'
+
+output:
+  culture:
+  - en-US
+
+# Convert Bicep to ARM JSON on the fly.
+configuration:
+  AZURE_BICEP_FILE_EXPANSION: true
+  AZURE_BICEP_FILE_EXPANSION_TIMEOUT: 30

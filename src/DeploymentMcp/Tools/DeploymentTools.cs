@@ -41,8 +41,8 @@ public sealed class DeploymentTools(
 
         CancellationToken cancellationToken)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(repo);
-        ArgumentException.ThrowIfNullOrWhiteSpace(branch);
+        Validation.EnsureSafeRepo(repo, nameof(repo));
+        Validation.EnsureSafeBranch(branch, nameof(branch));
 
         using var scope = logger.BeginScope(new Dictionary<string, object>
         {
@@ -75,6 +75,13 @@ public sealed class DeploymentTools(
         CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(deploymentId);
+        // AzDO build IDs are short positive integers; reject anything else
+        // so a prompt-injected id can't break out of the REST URL.
+        if (!int.TryParse(deploymentId, out var id) || id <= 0)
+        {
+            throw new ArgumentException(
+                "deploymentId must be a positive integer.", nameof(deploymentId));
+        }
 
         using var scope = logger.BeginScope(new Dictionary<string, object>
         {
@@ -116,9 +123,16 @@ public sealed class DeploymentTools(
 
         CancellationToken cancellationToken)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(repo);
-        ArgumentException.ThrowIfNullOrWhiteSpace(targetCommit);
+        Validation.EnsureSafeRepo(repo, nameof(repo));
+        Validation.EnsureSha(targetCommit, nameof(targetCommit));
         ArgumentException.ThrowIfNullOrWhiteSpace(reason);
+        // Cap free-text fields so a prompt-injected megablob can't get
+        // written into the PR description verbatim.
+        if (reason.Length > 2000)
+        {
+            throw new ArgumentException(
+                "reason must be 2000 characters or fewer.", nameof(reason));
+        }
 
         using var scope = logger.BeginScope(new Dictionary<string, object>
         {

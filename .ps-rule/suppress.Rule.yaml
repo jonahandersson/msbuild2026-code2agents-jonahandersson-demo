@@ -1,0 +1,9 @@
+#
+# PSRule suppressions — anything listed here must have a comment justifying
+# why the rule cannot apply to the demo. Reviewed every release.
+#
+resource:
+# Example: the demo Function App lives in Flex Consumption which doesn't
+# expose the Always On setting — the rule is N/A for this SKU.
+# - .: Azure.AppService.AlwaysOn
+suppression: {}

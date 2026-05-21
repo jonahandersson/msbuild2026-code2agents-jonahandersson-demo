@@ -29,11 +29,43 @@ jobs:
       - name: Build
         run: dotnet build --configuration Release --no-restore
 
-      - name: Test
-        # Scope `dotnet test` to the only test project in the solution.
-        # Running it against the .sln invokes VSTest on every project, which
-        # fails on Aspire AppHost (no VSTest target) with MSB4057.
+      - name: Test — seed app
         run: dotnet test demo/shop-api-seed/tests/ShopApi.Tests/ShopApi.Tests.csproj --configuration Release --no-build --verbosity normal
+
+      - name: Test — MCP security suite
+        # Pins the input-validation regexes and the MCP tool guards that
+        # stop a prompt-injected argument from reaching Azure DevOps.
+        run: dotnet test tests/DeploymentMcp.Tests/DeploymentMcp.Tests.csproj --configuration Release --no-build --verbosity normal
 
       - name: Verify Function packs
         run: dotnet publish src/DeploymentMcp/DeploymentMcp.csproj -c Release -o ./out/func
+
+  infra-security:
+    runs-on: ubuntu-latest
+    name: Infra security (PSRule for Azure)
+    permissions:
+      contents: read
+      security-events: write   # Upload SARIF to GitHub code scanning
+    steps:
+      - uses: actions/checkout@v4
+
+      # PSRule for Azure expands Bicep on the fly — Bicep CLI must be present.
+      - name: Setup Bicep
+        run: az bicep install
+
+      - name: Run PSRule for Azure
+        uses: microsoft/ps-rule@v2.9.0
+        with:
+          modules: PSRule.Rules.Azure
+          inputPath: infra/
+          baseline: Azure.GA_2024_09
+          outputFormat: Sarif
+          outputPath: ps-rule.sarif.json
+
+      - name: Upload PSRule SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: ps-rule.sarif.json
+          category: psrule-azure
+
