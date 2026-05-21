@@ -5,6 +5,12 @@ namespace DeploymentMcp.Services;
 /// <summary>
 /// In-memory deployment service for local dev and the conference Wi-Fi fallback.
 /// Don't ship this to production. Do use it on stage when the demo gods are angry.
+///
+/// DEMO-ONLY CONSTRAINT: The hardcoded scenario only works for the "shop-api → main"
+/// rollback narrative — build IDs 2887–2891 and commit SHAs (a4f9c12e failing,
+/// b1e3d847 last-known-good) are wired specifically for that path. Any other
+/// repo/branch returns the same fixture. For real environments use
+/// <see cref="AzureDevOpsClient"/> instead (set DemoMode=false).
 /// </summary>
 public sealed class FakeDeploymentService(ILogger<FakeDeploymentService> logger)
     : IDeploymentService

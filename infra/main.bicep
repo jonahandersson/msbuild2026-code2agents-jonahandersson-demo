@@ -316,6 +316,12 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
           value: demoMode
         }
         {
+          // TODO (prod): Move AzureDevOps__OrgUrl and AzureDevOps__Project into
+          // Key Vault and inject via @Microsoft.KeyVault(VaultName=...;SecretName=...)
+          // references once these point at a real org. The Function App's managed
+          // identity already has Storage Blob Data Owner; add Key Vault Secrets User.
+          // See: https://learn.microsoft.com/azure/app-service/app-service-key-vault-references
+          //
           // Only emitted when not in demo mode; otherwise AzureDevOpsOptions
           // validation is skipped in Program.cs so the Function still boots.
           name: 'AzureDevOps__OrgUrl'
@@ -483,6 +489,10 @@ output FUNCTION_APP_HOSTNAME string     = functionApp.properties.defaultHostName
 output FUNCTION_IDENTITY_CLIENT_ID string = functionIdentity.properties.clientId
 output APPLICATION_INSIGHTS_NAME string  = appInsights.name
 output MCP_ENDPOINT string              = 'https://${functionApp.properties.defaultHostName}/runtime/webhooks/mcp'
+// Foundry hosted MCP tool fetches /sse server-side and needs the function-key
+// query string (the systemKeys.mcp_extension key is generated at first start, so
+// the deploy script appends ?code=<key> to this URL when registering the agent).
+output MCP_SSE_ENDPOINT string          = 'https://${functionApp.properties.defaultHostName}/runtime/webhooks/mcp/sse'
 output FOUNDRY_ACCOUNT_NAME string      = foundryAccount.name
 output FOUNDRY_PROJECT_NAME string      = foundryProject.name
 output FOUNDRY_PROJECT_ENDPOINT string  = foundryProject.properties.endpoints['AI Foundry API']
@@ -492,4 +502,4 @@ output SHOP_WEB_APP_NAME string         = shopWeb.name
 output SHOP_WEB_URL string              = 'https://${shopWeb.properties.defaultHostName}'
 output SHOP_WEB_RESOURCE_GROUP string   = resourceGroup().name
 output ASPIRE_DASHBOARD_OTLP string     = 'https://${aspireDashboard.properties.configuration.ingress.fqdn}:18889'
-output SHOP_WEB_URL string              = 'https://${shopWeb.properties.defaultHostName}'
+

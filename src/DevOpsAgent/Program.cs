@@ -58,13 +58,26 @@ var aiProjectClient = new AIProjectClient(
 
 // --- 2. Define the hosted MCP tool that points at our Function app ---
 // Foundry will fetch the tool list from our /runtime/webhooks/mcp endpoint
-// and invoke them as needed. For the demo we allow auto-approval; in
-// production you'd switch to AlwaysRequireApproval for sensitive tools.
+// and invoke them as needed.
+//
+// Approval policy:
+//   - Demo (default):  NeverRequireApproval — keeps the 15-min flow tight.
+//   - Production:      AlwaysRequireApproval — `create_rollback_pr` is
+//     destructive (writes to AzDO). Set AGENT_APPROVAL_MODE=prod to opt in.
+var approvalMode = Environment.GetEnvironmentVariable("AGENT_APPROVAL_MODE")
+                   ?? "demo";
+var approvalPolicy = approvalMode.Equals("prod", StringComparison.OrdinalIgnoreCase)
+    ? GlobalMcpToolCallApprovalPolicy.AlwaysRequireApproval
+    : GlobalMcpToolCallApprovalPolicy.NeverRequireApproval;
+
+logger.LogInformation(
+    "MCP tool approval policy: {Policy} (AGENT_APPROVAL_MODE={Mode})",
+    approvalPolicy, approvalMode);
+
 var deploymentMcpTool = ResponseTool.CreateMcpTool(
     serverLabel: "deployment_ops",
     serverUri: new Uri(mcpServerUrl),
-    toolCallApprovalPolicy: new McpToolCallApprovalPolicy(
-        GlobalMcpToolCallApprovalPolicy.NeverRequireApproval));
+    toolCallApprovalPolicy: new McpToolCallApprovalPolicy(approvalPolicy));
 
 // --- 3. Create the agent on the Foundry side ---
 ProjectsAgentVersion agentVersion;
