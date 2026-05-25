@@ -1,0 +1,40 @@
+%%{init: {"theme":"base","themeVariables":{"fontFamily":"Segoe UI, sans-serif","primaryColor":"#DEECF9","primaryTextColor":"#0B2545","primaryBorderColor":"#0078D4","lineColor":"#005A9E","clusterBkg":"#F3F9FD","clusterBorder":"#0078D4"}}}%%
+flowchart LR
+    user["SRE<br/>(natural language prompt)"]
+
+    subgraph agent1["Agent #1 — Reasoning agent"]
+        direction TB
+        foundry["Microsoft Foundry<br/><i>DevOpsRollbackAgent</i><br/>declarative + hosted MCP"]
+        model["gpt-4o-mini / 4.1-mini"]
+        foundry --- model
+    end
+
+    subgraph agent2["Agent #2 — Tool agent"]
+        direction TB
+        funcs["Azure Functions<br/><i>Flex Consumption, .NET 10 isolated</i>"]
+        mcp["Worker.Extensions.Mcp v1.0.0<br/>SSE + JSON-RPC"]
+        tools["DeploymentTools.cs<br/>• get_recent_deployments<br/>• diagnose_deployment<br/>• create_rollback_pr"]
+        funcs --- mcp --- tools
+    end
+
+    azdo["Azure DevOps<br/><i>shop-api repo + pipelines</i>"]
+    gate["CI gates<br/><i>GitHub Actions + AzDO Pipelines</i><br/>62 security tests + PSRule"]
+    storefront["Storefront<br/><i>App Service</i>"]
+    obs["Observability<br/><i>Aspire dashboard (local)<br/>App Insights (cloud)</i>"]
+
+    user -->|"1. prompt"| agent1
+    agent1 <-->|"2. MCP handshake<br/>(SSE /sse + POST /message)"| agent2
+    agent2 -->|"3. Managed Identity<br/>(no PAT, no shared key)"| azdo
+    azdo -->|"4. PR opened"| gate
+    gate -->|"5. green"| azdo
+    azdo -.->|"merge → deploy"| storefront
+
+    agent1 -.->|"OTel"| obs
+    agent2 -.->|"OTel"| obs
+
+    classDef agentBox fill:#DEECF9,stroke:#0078D4,stroke-width:2.5px,color:#0B2545
+    classDef azureBox fill:#FFFFFF,stroke:#0078D4,stroke-width:1.5px,color:#0B2545
+    classDef obsBox fill:#F3F9FD,stroke:#005A9E,stroke-width:1.5px,color:#0B2545
+    class agent1,agent2 agentBox
+    class azdo,gate,storefront azureBox
+    class obs,user obsBox

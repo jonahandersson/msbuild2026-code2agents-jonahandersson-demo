@@ -1,0 +1,29 @@
+%%{init: {"theme":"base","themeVariables":{"fontFamily":"Segoe UI, sans-serif","primaryColor":"#DEECF9","primaryTextColor":"#0B2545","primaryBorderColor":"#0078D4","lineColor":"#005A9E","clusterBkg":"#F3F9FD","clusterBorder":"#0078D4"}}}%%
+flowchart LR
+    dev["Developer"]
+    cmd["dotnet run --project src/AppHost"]
+    dev --> cmd
+
+    subgraph aspire["Aspire AppHost"]
+        direction TB
+        dash["Aspire dashboard<br/>https://localhost:17081<br/>traces · logs · metrics"]
+        mcp_local["mcp-server resource<br/><i>func start (port 7071)</i>"]
+        agent_local["devops-agent resource<br/><i>dotnet run</i>"]
+        dash -.- mcp_local
+        dash -.- agent_local
+    end
+
+    cmd --> aspire
+
+    azurite["Azurite<br/>:10000 blob · :10001 queue · :10002 table"]
+    mcp_local --> azurite
+
+    foundry_cloud["Microsoft Foundry<br/>(reasoning agent + model)"]
+    agent_local -->|"DefaultAzureCredential<br/>(your developer login)"| foundry_cloud
+
+    agent_local <-->|"MCP SSE (localhost:7071)<br/>OR remote: $env:MCP_SERVER_URL"| mcp_local
+
+    classDef localBox fill:#DEECF9,stroke:#0078D4,stroke-width:2px,color:#0B2545
+    classDef cloudBox fill:#FFFFFF,stroke:#005A9E,stroke-width:2px,color:#0B2545
+    class aspire,azurite,mcp_local,agent_local,dash localBox
+    class foundry_cloud cloudBox

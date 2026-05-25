@@ -1,0 +1,36 @@
+%%{init: {"theme":"base","themeVariables":{"fontFamily":"Segoe UI, sans-serif","primaryColor":"#DEECF9","primaryTextColor":"#0B2545","primaryBorderColor":"#0078D4","lineColor":"#005A9E","actorBkg":"#DEECF9","actorBorder":"#0078D4","actorTextColor":"#0B2545","actorLineColor":"#005A9E","signalColor":"#005A9E","signalTextColor":"#0B2545","labelBoxBkgColor":"#DEECF9","labelBoxBorderColor":"#0078D4","labelTextColor":"#0B2545","noteBkgColor":"#FFF4CE","activationBkgColor":"#0078D4","activationBorderColor":"#005A9E"}}}%%
+sequenceDiagram
+    autonumber
+    actor SRE
+    participant Agent1 as Agent 1 — Foundry (reasons)
+    participant MCP as Agent 2 — MCP server (acts)
+    participant AzDO as Azure DevOps
+    participant Gate as CI Gate
+
+    SRE->>Agent1: "Latest deployment of shop-api is failing.<br/>Roll back if needed."
+    Agent1->>MCP: GET /runtime/webhooks/mcp/sse (open stream)
+    MCP-->>Agent1: event endpoint + tool list (3 tools)
+    Note over Agent1: reason: which tool first?
+
+    Agent1->>MCP: POST /message → get_recent_deployments<br/>(repo=shop-api, branch=main)
+    MCP->>AzDO: GET /_apis/build/builds (MI bearer)
+    AzDO-->>MCP: build 2891 = failed
+    MCP-->>Agent1: { failed: 2891, last_good_sha: b1e3d8... }
+
+    Note over Agent1: reason: diagnose the failure
+    Agent1->>MCP: POST /message → diagnose_deployment(id=2891)
+    MCP->>AzDO: GET /_apis/build/builds/2891/logs (MI bearer)
+    AzDO-->>MCP: failure pattern matched
+    MCP-->>Agent1: { root_cause, rollback_recommended: true }
+
+    Note over Agent1: reason: ship rollback
+    Agent1->>MCP: POST /message → create_rollback_pr<br/>(sha=b1e3d8..., reason)
+    MCP->>AzDO: POST /_apis/git/repositories/.../pullrequests<br/>(MI bearer)
+    AzDO-->>MCP: PR 142 created
+    MCP-->>Agent1: { pr_url, pr_number }
+
+    Agent1-->>SRE: "Created PR 142 — rollback to b1e3d8...<br/>Reason: agent reasoning"
+
+    AzDO->>Gate: PR webhook
+    Gate->>Gate: 62 security tests + PSRule
+    Gate-->>AzDO: green ✓
