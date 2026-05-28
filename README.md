@@ -1,32 +1,31 @@
 # From Code to Agents: Build Production MCP Servers on Azure Functions
 
-> **Microsoft Build 2026 — 20-minute demo talk**
-> Speaker: Jonah Andersson
 > Stack: C# / .NET 10 · Azure Functions (isolated worker) · MCP Extension · Microsoft Agent Framework 1.0 · Microsoft Foundry · Azure DevOps
 
-This repo is the live-demo companion for the talk. It walks from *"a Function with one
-attribute"* to *"an agent that diagnoses a failed deployment and opens a rollback PR in
-Azure DevOps,"* using the same patterns you'd ship in production.
+Production-grade reference for hosting a **Model Context Protocol (MCP) server** on Azure
+Functions and driving it from an agent built with the **Microsoft Agent Framework** on
+**Microsoft Foundry**. Goes end-to-end from `[McpToolTrigger]` attribute on a Function
+to an agent that diagnoses a failed deployment and opens a rollback PR in Azure DevOps —
+using the same patterns you'd ship in production.
 
 ---
 
-## Why this talk
+## Why MCP on Azure Functions
 
-Agents are stuck in pilot for one reason: they can't talk to your tools without fragile,
-custom-built integrations. **MCP (Model Context Protocol)** gives agents a standard way to
-discover and invoke tools at runtime. Azure Functions, with the **MCP Extension** (GA at
-Ignite 2025), is the right host for production MCP servers:
+Agents need a standard way to discover and invoke tools at runtime.
+**MCP (Model Context Protocol)** is that standard. Azure Functions, with the
+**MCP Extension** (GA at Ignite 2025), is a strong host for production MCP servers:
 
 - Scale to zero, scale to thousands.
 - Entra-backed auth at the `/runtime/webhooks/mcp` endpoint.
-- Your existing CI/CD and observability story already works.
+- Existing CI/CD and observability stories already work.
 - Managed Identity end-to-end — no PATs, no connection strings in code.
 
 ---
 
-## The scenario
+## What it does
 
-A production deployment of `shop-api` to `main` is failing. The DevOps agent:
+The sample scenario: a deployment of `shop-api` to `main` is failing. The DevOps agent:
 
 1. Lists the most recent deployments for the repo and branch.
 2. Diagnoses the latest failed deployment.
@@ -62,8 +61,8 @@ The MCP server (this repo's Function app) exposes three tools:
 
 ## Quick start (local, no cloud needed)
 
-The MCP server has a `FakeDeploymentService` so you can run the whole demo against
-in-memory data — useful for rehearsing and for the Wi-Fi fallback.
+The MCP server has a `FakeDeploymentService` so you can run the whole flow against
+in-memory data — useful for local development without Azure DevOps access.
 
 **Option A — .NET Aspire (recommended for local dev):**
 
@@ -97,12 +96,11 @@ Try the prompt: *"The latest deployment of shop-api to main is failing. Investig
 
 ---
 
-## Demo-day setup (with real Azure DevOps)
+## Connecting to a real Azure DevOps project
 
 If you don't have an Azure DevOps project yet, follow
 **[demo/shop-api-seed/SETUP-AZDO.md](./demo/shop-api-seed/SETUP-AZDO.md)** —
-it's the full 2-3 hour walkthrough that gets you from "no AzDO" to "agent
-creates real rollback PRs."
+the full walkthrough that gets you from "no AzDO" to "agent creates real rollback PRs."
 
 Short version once you have an org + project + repo:
 
@@ -128,8 +126,9 @@ azd up
 - Application Insights + Log Analytics workspace
 - Role assignment so the Function can read your Foundry project
 
-The Azure DevOps role assignment is a manual step because it spans services — see
-[STEPS.md](./STEPS.md) for the one-liner.
+The Azure DevOps role assignment is a manual step because it spans services. See
+[demo/shop-api-seed/SETUP-AZDO.md](./demo/shop-api-seed/SETUP-AZDO.md) for the
+required AzDO scopes on the Function App's Managed Identity.
 
 ### Deploying from GitHub Actions (OIDC federation)
 
@@ -190,23 +189,20 @@ build2026-mcp-azure-functions/
 │   ├── DeploymentMcp/     Azure Function = MCP server (the headliner)
 │   └── DevOpsAgent/       Console app = MCP client (Microsoft Agent Framework)
 ├── demo/
-│   ├── shop-api-seed/     The Azure DevOps target repo + setup script
-│   ├── observability/     KQL queries for the App Insights demo moment
-│   ├── cached-responses/  Wi-Fi fallback payloads
-│   └── DEMO-SCRIPT.md     Beat-by-beat speaker notes with timing
-├── slides/                Slide notes (cobalt blue brand)
+│   ├── shop-api-seed/     Azure DevOps target repo + setup script
+│   ├── observability/     KQL queries for the App Insights views
+│   └── cached-responses/  Optional canned payloads for offline runs
 ├── azure.yaml             azd entry point
 ├── Directory.Packages.props  Central package management
-├── global.json            Pins SDK version
-└── STEPS.md               How to branch this into step-by-step demo branches
+└── global.json            Pins SDK version
 ```
 
 ---
 
-## ⚠️ Two things to verify before stage
+## Verifying the SDK surface
 
 The MCP Extension for Functions and Microsoft Agent Framework 1.0 are evolving fast.
-Before your talk, verify two things against the latest samples:
+When upgrading, verify two things against the latest samples:
 
 1. **The `[McpToolTrigger]` and `[McpToolProperty]` attribute signatures** in
    `Microsoft.Azure.Functions.Worker.Extensions.Mcp`.
@@ -217,30 +213,4 @@ Before your talk, verify two things against the latest samples:
    Sample: <https://github.com/microsoft/agent-framework>
 
 The code in this repo follows the documented public API at time of writing. If a name
-shifted between versions, the fix is usually a one-line rename — but you want to know
-*before* you're on stage, not during.
-
----
-
-## Fallback path (when Wi-Fi fights back)
-
-Set `DEMO_MODE=cached` when running the agent. The MCP server's `FakeDeploymentService`
-will serve canned responses from `demo/cached-responses/`. The agent's reasoning is still
-real (the LLM call runs); the *data* is canned. The audience can't tell — and you finish
-the demo on time.
-
-Absolute last resort: a 90-second screen recording lives in `demo/recording.mp4` (you'll
-create this yourself during rehearsal — see [DEMO-SCRIPT.md](./demo/DEMO-SCRIPT.md)).
-
----
-
-
-## License
-
-This repo includes an MIT License for maximum reuse and sharing. If you are the sole author and do not require an explicit license, you may remove the LICENSE file and this section. However, including an open-source license is recommended for clarity if you intend others to use or fork your code.
-
----
-
-## Dry-run checklist (demo rehearsal)
-
-The dry-run script covers the full demo flow. Optionally, if time permits, you can use the [MCP Inspector](https://www.npmjs.com/package/@modelcontextprotocol/inspector) to validate the MCP tools surface (see the private dry-run checklist for details).
+shifted between versions, the fix is usually a one-line rename.

@@ -42,6 +42,9 @@ demo/recording.mov
 
 # Logs
 *.log
+# Kudu / App Service log dumps (may contain real subscription, tenant, principal IDs)
+**/LogFiles/
+**/ShopWeb/logs/
 
 # Roslyn/OmniSharp language-server cache
 *.lscache

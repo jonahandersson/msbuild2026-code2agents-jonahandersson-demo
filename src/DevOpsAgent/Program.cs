@@ -23,7 +23,7 @@ using OpenAI.Responses;
 // dotnet/samples/02-agents/ModelContextProtocol/FoundryAgent_Hosted_MCP.
 //
 // Pre-warm mode: pass a prompt as args[0] and the agent runs one turn and
-// exits — used by the rehearsal checklist to warm the model before stage.
+// exits — useful for warming up the model before an interactive session.
 //
 // Telemetry: every turn opens an Activity under "DevOpsAgent.Turn" so the
 // trace shows up in the Aspire dashboard locally and in App Insights in the
@@ -129,7 +129,7 @@ catch (Exception ex)
 
 try
 {
-    // --- 4a. Single-turn pre-warm mode (rehearsal checklist) ---
+    // --- 4a. Single-turn pre-warm mode ---
     if (args.Length > 0)
     {
         var prompt = string.Join(' ', args);

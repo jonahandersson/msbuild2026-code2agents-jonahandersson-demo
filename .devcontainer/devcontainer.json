@@ -1,5 +1,5 @@
 {
-  "name": "Build 2026 - MCP on Azure Functions",
+  "name": "MCP on Azure Functions",
   "image": "mcr.microsoft.com/devcontainers/dotnet:1-10.0",
 
   "features": {

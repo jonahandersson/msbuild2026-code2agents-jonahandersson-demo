@@ -1,9 +1,9 @@
 // =============================================================================
-// Build 2026 demo — MCP server on Azure Functions
+// MCP server on Azure Functions — sample infrastructure
 //
-// This file is deliberately kept as a SINGLE file with no modules, so when you
-// flip to it in the demo it reads top-to-bottom on one screen.
-// In a real production estate, factor this into modules.
+// This file is deliberately kept as a SINGLE file with no modules so it reads
+// top-to-bottom on one screen. In a real production estate, factor this into
+// modules.
 // =============================================================================
 
 targetScope = 'resourceGroup'
@@ -221,8 +221,8 @@ resource foundryProject 'Microsoft.CognitiveServices/accounts/projects@2025-06-0
   tags: tags
   identity: { type: 'SystemAssigned' }
   properties: {
-    displayName: 'Build 2026 DevOps Agent'
-    description: 'Project for the rollback agent demo.'
+    displayName: 'DevOps Rollback Agent'
+    description: 'Project for the rollback agent sample.'
   }
 }
 

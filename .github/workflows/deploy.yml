@@ -23,7 +23,7 @@ on:
 # And under "Variables":
 #   AZURE_ENV_NAME       (e.g. demo)
 #   AZURE_LOCATION       (e.g. swedencentral)
-#   AZURE_NAME_PREFIX    (optional, e.g. mcpdemo — lets multiple speakers
+#   AZURE_NAME_PREFIX    (optional, e.g. mcpdemo — lets multiple users
 #                         deploy from forks without name collisions)
 permissions:
   id-token: write
