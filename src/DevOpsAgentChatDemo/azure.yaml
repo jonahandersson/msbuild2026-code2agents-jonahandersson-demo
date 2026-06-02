@@ -1,0 +1,8 @@
+name: devopsagentchat
+services:
+  web:
+    project: DevOpsAgentChat
+    language: dotnet
+    host: appservice
+infra:
+  path: infra

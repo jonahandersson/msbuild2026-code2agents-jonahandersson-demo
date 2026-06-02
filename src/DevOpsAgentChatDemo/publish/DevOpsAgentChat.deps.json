@@ -1,0 +1,59 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v10.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v10.0": {
+      "DevOpsAgentChat/1.0.0": {
+        "dependencies": {
+          "Spectre.Console": "0.55.2"
+        },
+        "runtime": {
+          "DevOpsAgentChat.dll": {}
+        }
+      },
+      "Spectre.Console/0.55.2": {
+        "dependencies": {
+          "Spectre.Console.Ansi": "0.55.2"
+        },
+        "runtime": {
+          "lib/net10.0/Spectre.Console.dll": {
+            "assemblyVersion": "0.0.0.0",
+            "fileVersion": "0.55.2.0"
+          }
+        }
+      },
+      "Spectre.Console.Ansi/0.55.2": {
+        "runtime": {
+          "lib/net10.0/Spectre.Console.Ansi.dll": {
+            "assemblyVersion": "0.0.0.0",
+            "fileVersion": "0.55.2.0"
+          }
+        }
+      }
+    }
+  },
+  "libraries": {
+    "DevOpsAgentChat/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "Spectre.Console/0.55.2": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-yc0g12YJpmZHofGJLTQX02/uqfzJ6XHRx6pe9rANNjleQptXMHPxD9KI2/DWkXiJWddc+4oizEdGox15c89hhw==",
+      "path": "spectre.console/0.55.2",
+      "hashPath": "spectre.console.0.55.2.nupkg.sha512"
+    },
+    "Spectre.Console.Ansi/0.55.2": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-tN3KEJQQZwLW9HJnG5YTSAxfBwxsmg1wVuGvhGG2rM+pbl+NGaHU8pDcNofPlOXlgpkbpBMxI5t9o9qPfy3sHQ==",
+      "path": "spectre.console.ansi/0.55.2",
+      "hashPath": "spectre.console.ansi.0.55.2.nupkg.sha512"
+    }
+  }
+}

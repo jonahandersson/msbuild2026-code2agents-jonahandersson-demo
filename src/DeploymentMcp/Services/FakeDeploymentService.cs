@@ -112,13 +112,14 @@ public sealed class FakeDeploymentService(ILogger<FakeDeploymentService> logger)
         logger.LogInformation(
             "[FAKE] CreateRollbackPrAsync({Repo}, {Sha})", repo, targetCommit);
 
-        // Deterministic fake PR ID so the demo output is consistent.
-        var prId = 4271;
+        // Points at a real, pre-created PR in the demo AzDO project so the
+        // link in the agent reply is clickable on stage.
+        var prId = 2;
 
         var result = new RollbackPr(
             PullRequestId: prId,
             Url:
-                $"https://dev.azure.com/contoso/Shop/_git/{repo}/pullrequest/{prId}",
+                $"https://dev.azure.com/jonahanderssonazuredemos/msbuild2026eshopdemo/_git/{repo}/pullrequest/{prId}",
             Title: $"Rollback {repo} to {targetCommit[..7]} — automated by agent",
             SourceBranch: $"rollback/auto-{targetCommit[..7]}",
             TargetBranch: "main");

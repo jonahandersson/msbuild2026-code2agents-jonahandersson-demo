@@ -1,33 +1,30 @@
 <Project>
-
   <!--
     Central Package Management.
     Pin once here so demos don't break when a transitive package auto-updates.
     Verify the latest versions a week before the talk by running
     "dotnet list package" with the outdated flag.
   -->
-
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
   </PropertyGroup>
-
   <ItemGroup Label="Azure Functions worker (isolated)">
     <PackageVersion Include="Microsoft.Azure.Functions.Worker" Version="2.2.0" />
     <PackageVersion Include="Microsoft.Azure.Functions.Worker.Sdk" Version="2.0.7" />
     <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.Http.AspNetCore" Version="2.1.0" />
+    <PackageVersion Include="Microsoft.Identity.Web" Version="4.10.0" />
+    <PackageVersion Include="Microsoft.Identity.Web.UI" Version="4.10.0" />
+    <PackageVersion Include="Spectre.Console" Version="0.55.2" />
   </ItemGroup>
-
   <ItemGroup Label="MCP extension (GA, Ignite 2025)">
     <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.Mcp" Version="1.0.0" />
   </ItemGroup>
-
   <ItemGroup Label="Microsoft Agent Framework + Foundry bridge">
     <PackageVersion Include="Microsoft.Agents.AI" Version="1.6.1" />
     <PackageVersion Include="Microsoft.Agents.AI.Foundry" Version="1.6.1-preview.260514.1" />
     <PackageVersion Include="Microsoft.Extensions.AI" Version="10.5.1" />
   </ItemGroup>
-
   <ItemGroup Label="Azure SDK">
     <PackageVersion Include="Azure.Identity" Version="1.21.0" />
     <PackageVersion Include="Azure.AI.Projects" Version="2.1.0-beta.2" />
@@ -35,13 +32,12 @@
     <PackageVersion Include="OpenAI" Version="2.10.0" />
     <PackageVersion Include="System.ClientModel" Version="1.11.0" />
   </ItemGroup>
-
   <ItemGroup Label="Observability and resilience">
     <PackageVersion Include="Microsoft.ApplicationInsights.WorkerService" Version="2.22.0" />
     <PackageVersion Include="Microsoft.Azure.Functions.Worker.ApplicationInsights" Version="2.0.0" />
     <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="9.10.0" />
     <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery" Version="9.5.0" />
-    <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.14.0" />
+    <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.15.3" />
     <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.14.0" />
     <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.14.0" />
     <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="1.14.0" />
@@ -49,21 +45,17 @@
     <PackageVersion Include="Azure.Monitor.OpenTelemetry.AspNetCore" Version="1.4.0" />
     <PackageVersion Include="Azure.Monitor.OpenTelemetry.Exporter" Version="1.5.0" />
   </ItemGroup>
-
   <ItemGroup Label=".NET Aspire 9 — local orchestration + dashboard">
     <PackageVersion Include="Aspire.Hosting.AppHost" Version="9.0.0" />
   </ItemGroup>
-
   <ItemGroup Label="Options and configuration">
     <PackageVersion Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.0" />
     <PackageVersion Include="Microsoft.Extensions.Options.DataAnnotations" Version="10.0.0" />
   </ItemGroup>
-
   <ItemGroup Label="Test">
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
     <PackageVersion Include="xunit" Version="2.9.2" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="3.0.0" />
     <PackageVersion Include="FluentAssertions" Version="6.12.2" />
   </ItemGroup>
-
 </Project>

@@ -77,10 +77,15 @@ public sealed class DeploymentTools(
         ArgumentException.ThrowIfNullOrWhiteSpace(deploymentId);
         // AzDO build IDs are short positive integers; reject anything else
         // so a prompt-injected id can't break out of the REST URL.
-        if (!int.TryParse(deploymentId, out var id) || id <= 0)
+        // Accept the "build-<int>" form that get_recent_deployments returns.
+        var numericPart = deploymentId.StartsWith("build-", StringComparison.OrdinalIgnoreCase)
+            ? deploymentId["build-".Length..]
+            : deploymentId;
+        if (!int.TryParse(numericPart, out var id) || id <= 0)
         {
             throw new ArgumentException(
-                "deploymentId must be a positive integer.", nameof(deploymentId));
+                "deploymentId must be a positive integer (optionally prefixed with 'build-').",
+                nameof(deploymentId));
         }
 
         using var scope = logger.BeginScope(new Dictionary<string, object>

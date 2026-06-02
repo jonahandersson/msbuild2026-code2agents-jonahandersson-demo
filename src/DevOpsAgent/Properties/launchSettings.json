@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json.schemastore.org/launchsettings.json",
+  "profiles": {
+    "DevOpsAgent": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "launchBrowser": false,
+      "environmentVariables": {
+        "FOUNDRY_PROJECT_ENDPOINT": "https://aif-mcpdemork5lpkrhjgtl6.services.ai.azure.com/api/projects/proj-mcpdemork5lpkrhjgtl6",
+        "FOUNDRY_MODEL": "gpt-4.1-mini",
+        "MCP_SERVER_URL": "https://func-mcpdemork5lpkrhjgtl6.azurewebsites.net/runtime/webhooks/mcp?code=w7mYjvEpo6YSSLWsx5oQpCV6MCRdhMJh_R16X-S2HNNYAzFuOxeTow=="
+      }
+    }
+  }
+}

@@ -1,0 +1,5 @@
+{
+  "$schema": "https://aka.ms/azure-dev/azure.json",
+  "resourceGroup": "<your-dryrun-resource-group>",
+  "location": "<your-location>"
+}

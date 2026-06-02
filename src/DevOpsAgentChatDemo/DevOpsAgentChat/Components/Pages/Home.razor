@@ -1,0 +1,155 @@
+﻿@page "/"
+@rendermode InteractiveServer
+@inject IHttpClientFactory HttpClientFactory
+@inject NavigationManager Navigation
+
+<PageTitle>DevOps Agent Chat</PageTitle>
+
+<h1>DevOps Agent Chat</h1>
+<p class="text-muted">Send a request to the MCP-backed DevOps agent.</p>
+
+<div class="chat-shell">
+	<div class="chat-log" id="chat-log">
+		@if (messages.Count == 0)
+		{
+			<div class="chat-hint">Start by asking for deployment status, recent runs, or rollback guidance.</div>
+		}
+		else
+		{
+			@foreach (var msg in messages)
+			{
+				<div class="chat-row @(msg.IsUser ? "chat-row-user" : "chat-row-agent")">
+					<div class="chat-bubble">@msg.Text</div>
+				</div>
+			}
+		}
+	</div>
+
+	<EditForm Model="this" OnSubmit="SendAsync">
+		<div class="chat-input-row">
+			<InputText @bind-Value="userInput" class="form-control" placeholder="Ask the DevOps agent..." />
+			<button type="submit" class="btn btn-primary" disabled="@isSending">
+				@(isSending ? "Sending..." : "Send")
+			</button>
+		</div>
+	</EditForm>
+
+	@if (!string.IsNullOrWhiteSpace(error))
+	{
+		<div class="alert alert-danger mt-2">@error</div>
+	}
+</div>
+
+@code {
+	private readonly List<ChatMessage> messages = new();
+	private string userInput = string.Empty;
+	private string? error;
+	private bool isSending;
+
+	private async Task SendAsync()
+	{
+		error = null;
+		var prompt = userInput?.Trim();
+		if (string.IsNullOrWhiteSpace(prompt) || isSending)
+		{
+			return;
+		}
+
+		messages.Add(new ChatMessage(prompt, true));
+		userInput = string.Empty;
+		isSending = true;
+
+		try
+		{
+			var client = HttpClientFactory.CreateClient();
+			client.BaseAddress = new Uri(Navigation.BaseUri);
+
+			using var response = await client.PostAsJsonAsync("api/agentchat", new { message = prompt });
+			var reply = await response.Content.ReadAsStringAsync();
+
+			if (!response.IsSuccessStatusCode)
+			{
+				error = $"Backend error {(int)response.StatusCode}: {reply}";
+				messages.Add(new ChatMessage("I could not reach the backend agent successfully.", false));
+				return;
+			}
+
+			messages.Add(new ChatMessage(string.IsNullOrWhiteSpace(reply) ? "(No response text returned)" : reply, false));
+		}
+		catch (Exception ex)
+		{
+			error = ex.Message;
+			messages.Add(new ChatMessage("Request failed before reaching the backend.", false));
+		}
+		finally
+		{
+			isSending = false;
+		}
+	}
+
+	private sealed record ChatMessage(string Text, bool IsUser);
+}
+
+<style>
+	.chat-shell {
+		max-width: 900px;
+	}
+
+	.chat-log {
+		min-height: 360px;
+		max-height: 55vh;
+		overflow-y: auto;
+		padding: 1rem;
+		border: 1px solid #d8e6f7;
+		border-radius: 12px;
+		background: linear-gradient(180deg, #f4f9ff 0%, #ffffff 100%);
+		margin-bottom: 0.75rem;
+	}
+
+	.chat-hint {
+		color: #5f6b7a;
+	}
+
+	.chat-row {
+		display: flex;
+		margin-bottom: 0.65rem;
+	}
+
+	.chat-row-user {
+		justify-content: flex-end;
+	}
+
+	.chat-row-agent {
+		justify-content: flex-start;
+	}
+
+	.chat-bubble {
+		max-width: 80%;
+		white-space: pre-wrap;
+		padding: 0.65rem 0.9rem;
+		border-radius: 12px;
+	}
+
+	.chat-row-user .chat-bubble {
+		background: #0078d4;
+		color: #fff;
+	}
+
+	.chat-row-agent .chat-bubble {
+		background: #e8f1fb;
+		color: #18314a;
+		border: 1px solid #c7dcf3;
+	}
+
+	.chat-input-row {
+		display: grid;
+		gap: 0.5rem;
+		grid-template-columns: 1fr auto;
+	}
+
+	@@media (max-width: 640px) {
+		.chat-input-row {
+			grid-template-columns: 1fr;
+		}
+	}
+</style>
