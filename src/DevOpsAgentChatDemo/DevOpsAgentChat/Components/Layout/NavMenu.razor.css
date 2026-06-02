@@ -55,6 +55,16 @@
         padding-top: 1rem;
     }
 
+.nav-section-label {
+    color: #8fa3bf;
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin: 0.75rem 0 0.25rem;
+    opacity: 0.85;
+}
+
     .nav-item:last-of-type {
         padding-bottom: 1rem;
     }

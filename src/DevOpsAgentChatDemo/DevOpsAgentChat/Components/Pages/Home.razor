@@ -3,10 +3,18 @@
 @inject IHttpClientFactory HttpClientFactory
 @inject NavigationManager Navigation
 
-<PageTitle>DevOps Agent Chat</PageTitle>
+<PageTitle>Lorentz - The DevOpsRollBack AI Agent</PageTitle>
 
-<h1>DevOps Agent Chat</h1>
-<p class="text-muted">Send a request to the MCP-backed DevOps agent.</p>
+<div class="agent-header">
+	<img class="agent-logo"
+		 src="lorentz.png"
+		 onerror="this.onerror=null;this.src='lorentz.svg';"
+		 alt="Lorentz - The DevOpsRollBack AI Agent" />
+	<div class="agent-title">
+		<h1>Lorentz - The DevOpsRollBack AI Agent</h1>
+		<p class="agent-subtitle">MCP-powered</p>
+	</div>
+</div>
 
 <div class="chat-shell">
 	<div class="chat-log" id="chat-log">
@@ -19,9 +27,19 @@
 			@foreach (var msg in messages)
 			{
 				<div class="chat-row @(msg.IsUser ? "chat-row-user" : "chat-row-agent")">
-					<div class="chat-bubble">@msg.Text</div>
+					<div class="chat-bubble">@Linkify(msg.Text)</div>
 				</div>
 			}
+		}
+
+		@if (isSending)
+		{
+			<div class="chat-row chat-row-agent">
+				<div class="chat-bubble chat-thinking">
+					<span class="thinking-label">Agent is thinking</span>
+					<span class="thinking-dots"><span></span><span></span><span></span></span>
+				</div>
+			</div>
 		}
 	</div>
 
@@ -88,9 +106,89 @@
 	}
 
 	private sealed record ChatMessage(string Text, bool IsUser);
+
+	private static readonly System.Text.RegularExpressions.Regex UrlRegex =
+		new(@"https?://[^\s<>""]+", System.Text.RegularExpressions.RegexOptions.Compiled);
+
+	// Renders text with URLs turned into clickable links.
+	// All text is HTML-encoded first to prevent injection; only matched URLs become anchors.
+	private static MarkupString Linkify(string text)
+	{
+		if (string.IsNullOrEmpty(text))
+		{
+			return new MarkupString(string.Empty);
+		}
+
+		var sb = new System.Text.StringBuilder();
+		var lastIndex = 0;
+
+		foreach (System.Text.RegularExpressions.Match match in UrlRegex.Matches(text))
+		{
+			// Encode the plain text before the URL.
+			sb.Append(System.Net.WebUtility.HtmlEncode(text[lastIndex..match.Index]));
+
+			// Trim trailing punctuation that is likely sentence punctuation, not part of the URL.
+			var url = match.Value;
+			var trailing = string.Empty;
+			while (url.Length > 0 && (url[^1] is '.' or ',' or ')' or ']' or '!' or '?' or ';' or ':'))
+			{
+				trailing = url[^1] + trailing;
+				url = url[..^1];
+			}
+
+			var encodedUrl = System.Net.WebUtility.HtmlEncode(url);
+			sb.Append($"<a href=\"{encodedUrl}\" target=\"_blank\" rel=\"noopener noreferrer\">{encodedUrl}</a>");
+			sb.Append(System.Net.WebUtility.HtmlEncode(trailing));
+
+			lastIndex = match.Index + match.Length;
+		}
+
+		// Encode any remaining text after the last URL.
+		sb.Append(System.Net.WebUtility.HtmlEncode(text[lastIndex..]));
+
+		return new MarkupString(sb.ToString());
+	}
 }
 
 <style>
+	.agent-header {
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+		margin-bottom: 1rem;
+		max-width: 900px;
+	}
+
+	.agent-logo {
+		width: 64px;
+		height: 64px;
+		border-radius: 50%;
+		background: #05080f;
+		box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+		flex: 0 0 auto;
+	}
+
+	.agent-title {
+		min-width: 0;
+		flex: 1 1 auto;
+	}
+
+	.agent-title h1 {
+		margin: 0;
+		font-size: clamp(1.1rem, 2.6vw, 1.7rem);
+		line-height: 1.15;
+		color: #18314a;
+		overflow-wrap: break-word;
+		word-break: break-word;
+	}
+
+	.agent-subtitle {
+		margin: 0.1rem 0 0;
+		color: #5f6b7a;
+		font-size: 0.9rem;
+		overflow-wrap: break-word;
+	}
+
 	.chat-shell {
 		max-width: 900px;
 	}
@@ -139,6 +237,47 @@
 		background: #e8f1fb;
 		color: #18314a;
 		border: 1px solid #c7dcf3;
+	}
+
+	.chat-thinking {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.5rem;
+		font-style: italic;
+		color: #4a5b6e;
+	}
+
+	.thinking-dots {
+		display: inline-flex;
+		gap: 0.25rem;
+	}
+
+	.thinking-dots span {
+		width: 0.45rem;
+		height: 0.45rem;
+		border-radius: 50%;
+		background: #0078d4;
+		display: inline-block;
+		animation: thinking-bounce 1.2s infinite ease-in-out both;
+	}
+
+	.thinking-dots span:nth-child(1) {
+		animation-delay: -0.32s;
+	}
+
+	.thinking-dots span:nth-child(2) {
+		animation-delay: -0.16s;
+	}
+
+	@@keyframes thinking-bounce {
+		0%, 80%, 100% {
+			transform: scale(0.5);
+			opacity: 0.4;
+		}
+		40% {
+			transform: scale(1);
+			opacity: 1;
+		}
 	}
 
 	.chat-input-row {
