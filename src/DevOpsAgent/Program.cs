@@ -44,7 +44,7 @@ using var activitySource = new ActivitySource("DevOpsAgent");
 
 var foundryEndpoint = RequireEnv("FOUNDRY_PROJECT_ENDPOINT");
 var foundryModel    = Environment.GetEnvironmentVariable("FOUNDRY_MODEL")
-                      ?? "gpt-5.4-mini";
+                      ?? "gpt-4.1-mini";
 var mcpServerUrl    = RequireEnv("MCP_SERVER_URL");
 
 logger.LogInformation(

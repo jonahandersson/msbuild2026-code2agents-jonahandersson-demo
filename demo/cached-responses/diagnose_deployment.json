@@ -1,7 +1,7 @@
 {
-  "deploymentId": "build-2891",
-  "likelyRootCause": "Schema migration timeout. ALTER TABLE on Orders ran longer than the 30s pipeline timeout. The table is large in production and the migration didn't batch its updates.",
-  "evidence": "Pipeline log line 412: 'Command timeout expired'. The same migration ran cleanly on staging where Orders is nearly empty.",
+  "deploymentId": "build-2892",
+  "likelyRootCause": "Schema migration timeout. ALTER TABLE on Orders ran longer than the 30s pipeline timeout. The table is large and the migration didn't batch its updates.",
+  "evidence": "Pipeline log line 412: 'Command timeout expired'. The same migration ran cleanly on staging where Orders is empty.",
   "lastKnownGoodCommitSha": "b1e3d847",
   "rollbackRecommended": true
 }

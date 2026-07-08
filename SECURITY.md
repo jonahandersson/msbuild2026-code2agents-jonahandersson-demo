@@ -42,7 +42,7 @@ Two test classes, both run in CI:
   every MCP tool rejects bad inputs **before** reaching the
   `IDeploymentService`. Includes the destructive `create_rollback_pr`.
 
-Numbers at the time of writing: **62 tests, all green.**
+Numbers at the time of writing: **69 tests, all green.**
 
 ## CI / CD
 
