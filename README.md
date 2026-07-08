@@ -214,3 +214,13 @@ When upgrading, verify two things against the latest samples:
 
 The code in this repo follows the documented public API at time of writing. If a name
 shifted between versions, the fix is usually a one-line rename.
+
+---
+
+## License
+
+Licensed under the [MIT License](./LICENSE).
+
+This is a sample for educational purposes. The deployment data is simulated by
+default (`DemoMode = true`); see [SETUP-AZDO.md](./demo/shop-api-seed/SETUP-AZDO.md)
+to connect it to a real Azure DevOps project.

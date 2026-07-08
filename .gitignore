@@ -11,6 +11,8 @@ src/DevOpsAgent/secrets.json
 bin/
 obj/
 out/
+publish/
+**/publish/
 
 # .NET tooling
 *.user
@@ -25,6 +27,10 @@ out/
 # Functions
 local.settings.json
 .azure/
+
+# Local secrets kept private (real MCP extension key lives here, never committed)
+src/DevOpsAgentChatDemo/DevOpsAgentChat/appsettings.Development.json
+src/DevOpsAgent/Properties/launchSettings.json
 __azurite_db*.json
 __blobstorage__/
 __queuestorage__/

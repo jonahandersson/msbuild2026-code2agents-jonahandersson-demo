@@ -1,33 +1,31 @@
 # App Insights queries for the demo
 
-> **Speaker prep:** open the Application Insights resource in the Azure Portal,
+> **Setup:** open the Application Insights resource in the Azure Portal,
 > click **Logs**, and paste each query below into a tab. Save each as a *pinned
-> query* (the bookmark icon) so during the talk you can switch tabs without
-> typing. Pre-warming the queries also avoids the 4-5 second "first query is
-> slow" tax.
+> query* (the bookmark icon) so you can switch between them without retyping.
+> Running each once first also avoids the 4-5 second "first query is slow" tax.
 
-## Why this matters for the talk
+## Why this matters
 
-The talk's third takeaway is *"Azure Functions is the right host for production
-MCP."* App Insights is the receipt for that claim. When you flip to the portal
-at minute 10, the audience sees that **every** MCP tool call, **every** outgoing
-call to Azure DevOps, and **every** model interaction is already wired into the
-same observability stack they already use for .NET apps.
+Azure Functions is a strong host for production MCP servers, and App Insights is
+the proof: **every** MCP tool call, **every** outgoing call to Azure DevOps, and
+**every** model interaction is automatically wired into the same observability
+stack you already use for .NET apps.
 
-You don't need to explain the queries. You need to **scroll through results**
-that match the story the agent just told.
+The queries below let you trace an agent run end to end — from the model
+interaction, through each MCP tool call, down to the Azure DevOps request.
 
-## The four queries to pin
+## The four queries
 
-Pick **two** to actually show on stage — that's all you have time for. The
-others are backup.
+Start with the first two — they give the clearest picture. The others are
+useful for deeper investigation.
 
 ---
 
-### 1. Tool calls timeline — the visual hero
+### 1. Tool calls timeline
 
-This is the one to show first. It's the visual proof that every MCP invocation
-becomes a structured event in App Insights.
+Start here. It's the clearest proof that every MCP invocation becomes a
+structured event in App Insights.
 
 ```kql
 traces
@@ -52,7 +50,7 @@ traces
 | take 50
 ```
 
-**What the audience sees:** the three tool calls the agent just made, in order,
+**What you see:** the three tool calls the agent just made, in order,
 with the prompts the agent passed in. The `operation_Id` column is the gold
 thread — every entry from one agent turn shares the same ID.
 
@@ -78,19 +76,17 @@ union requests, dependencies, traces
 | order by timestamp asc
 ```
 
-**What the audience sees:** one ordered list — agent.Turn → MCP tool call →
+**What you see:** one ordered list — agent.Turn → MCP tool call →
 HTTP call to Azure DevOps → response back. The whole chain in one screen.
 
-**Speaker line for this:** *"This is the agent's audit trail. Every decision,
-every tool call, every external HTTP request. If a regulator asks 'what did
-your agent do,' this is the answer."*
+This is the agent's audit trail: every decision, every tool call, every external
+HTTP request. If a regulator asks "what did your agent do," this is the answer.
 
 ---
 
-### 3. Tool latency percentiles — for the cost-conscious audience member
+### 3. Tool latency percentiles
 
-If a senior engineer in the front row asks *"how do you know it's fast enough?",*
-flip to this:
+To answer *"how do you know it's fast enough?"*, use this:
 
 ```kql
 requests
@@ -108,8 +104,8 @@ requests
 | order by count desc
 ```
 
-**What the audience sees:** real percentile latency per MCP tool. The
-honest answer when someone asks *"is it production-ready?"*
+**What you see:** real percentile latency per MCP tool. The
+honest answer to *"is it production-ready?"*
 
 ---
 
@@ -138,8 +134,8 @@ requests
 
 ## Pre-warming script
 
-Run this from `az` before going on stage. Triggers each query so the App
-Insights engine has a hot path ready for the live demo.
+Run this from `az` first. It triggers each query so the App Insights engine has
+a hot path ready and you avoid the first-query latency.
 
 ```bash
 APPINSIGHTS_ID="<your-app-insights-resource-id>"
@@ -159,10 +155,10 @@ echo "App Insights pre-warmed."
 
 ## Save-as-workbook trick
 
-If your conference Wi-Fi to the Azure Portal is slow, save query #1 and #2
-as a single Azure Workbook (Workbooks → New → Add Query → save). The Workbook
-caches the results visually. When you click into it on stage, you see the
-results immediately while the live query runs in the background.
+If your connection to the Azure Portal is slow, save query #1 and #2 as a single
+Azure Workbook (Workbooks → New → Add Query → save). The Workbook caches the
+results visually, so it renders immediately while the live query runs in the
+background.
 
-A pre-saved Workbook is the right safety net for the App Insights beat —
-just like the cached MCP responses are the safety net for the agent beat.
+A pre-saved Workbook is a good safety net for the App Insights view — just like
+the cached MCP responses are a safety net for the agent run.

@@ -7,7 +7,7 @@ namespace DeploymentMcp.Services;
 /// Don't ship this to production. Do use it on stage when the demo gods are angry.
 ///
 /// DEMO-ONLY CONSTRAINT: The hardcoded scenario only works for the "shop-api → main"
-/// rollback narrative — build IDs 2887–2891 and commit SHAs (a4f9c12e failing,
+/// rollback narrative — build IDs 2887–2892 and commit SHAs (a4f9c12e failing,
 /// b1e3d847 last-known-good) are wired specifically for that path. Any other
 /// repo/branch returns the same fixture. For real environments use
 /// <see cref="AzureDevOpsClient"/> instead (set DemoMode=false).
@@ -15,8 +15,10 @@ namespace DeploymentMcp.Services;
 public sealed class FakeDeploymentService(ILogger<FakeDeploymentService> logger)
     : IDeploymentService
 {
-    private static readonly DateTimeOffset BaseTime =
-        DateTimeOffset.Parse("2026-05-15T08:00:00Z");
+    // Anchored to "now" so the demo always shows a failure as of today.
+    // The most recent failed build (build-2892) finishes 6 minutes ago.
+    private static DateTimeOffset BaseTime =>
+        DateTimeOffset.UtcNow.AddMinutes(6);
 
     public Task<IReadOnlyList<Deployment>> GetRecentAsync(
         string repo, string branch, int take, CancellationToken cancellationToken)
@@ -28,7 +30,7 @@ public sealed class FakeDeploymentService(ILogger<FakeDeploymentService> logger)
         [
             // The failing one — what the agent will diagnose
             new Deployment(
-                Id: "build-2891",
+                Id: "build-2892",
                 Repo: repo,
                 Branch: branch,
                 CommitSha: "a4f9c12e",
@@ -36,8 +38,19 @@ public sealed class FakeDeploymentService(ILogger<FakeDeploymentService> logger)
                 StartedAt: BaseTime.AddMinutes(-12),
                 FinishedAt: BaseTime.AddMinutes(-6),
                 FailureMessage:
-                    "Migration 20260515_AddCustomerLoyalty timed out " +
+                    "Migration 20260603_AddCustomerLoyalty timed out " +
                     "after 30s during ALTER TABLE Orders ADD COLUMN..."),
+
+            // Slightly older, also failed — same root cause
+            new Deployment(
+                Id: "build-2891",
+                Repo: repo,
+                Branch: branch,
+                CommitSha: "a4f9c12e",
+                Status: "failed",
+                StartedAt: BaseTime.AddMinutes(-40),
+                FinishedAt: BaseTime.AddMinutes(-34),
+                FailureMessage: "Same as build-2892"),
 
             // Slightly older, also failed — but for a different reason
             new Deployment(
@@ -46,9 +59,9 @@ public sealed class FakeDeploymentService(ILogger<FakeDeploymentService> logger)
                 Branch: branch,
                 CommitSha: "a4f9c12e",
                 Status: "failed",
-                StartedAt: BaseTime.AddMinutes(-40),
-                FinishedAt: BaseTime.AddMinutes(-34),
-                FailureMessage: "Same as build-2891"),
+                StartedAt: BaseTime.AddHours(-1).AddMinutes(-10),
+                FinishedAt: BaseTime.AddHours(-1).AddMinutes(-4),
+                FailureMessage: "Same as build-2892"),
 
             // The last known-good — this is what the agent should roll back to
             new Deployment(
@@ -114,12 +127,12 @@ public sealed class FakeDeploymentService(ILogger<FakeDeploymentService> logger)
 
         // Points at a real, pre-created PR in the demo AzDO project so the
         // link in the agent reply is clickable on stage.
-        var prId = 2;
+        var prId = 3;
 
         var result = new RollbackPr(
             PullRequestId: prId,
             Url:
-                $"https://dev.azure.com/jonahanderssonazuredemos/msbuild2026eshopdemo/_git/{repo}/pullrequest/{prId}",
+                $"https://dev.azure.com/<your-org>/<your-project>/_git/{repo}/pullrequest/{prId}",
             Title: $"Rollback {repo} to {targetCommit[..7]} — automated by agent",
             SourceBranch: $"rollback/auto-{targetCommit[..7]}",
             TargetBranch: "main");

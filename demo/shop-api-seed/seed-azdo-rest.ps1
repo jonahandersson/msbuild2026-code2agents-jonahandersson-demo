@@ -10,7 +10,7 @@
   Function App's managed identity to the AzDO org + Contributors group.
 
 .EXAMPLE
-  ./seed-azdo-rest.ps1 -OrgName jonahanderssonazuredemos -ProjectName msbuild2026eshopdemo `
+  ./seed-azdo-rest.ps1 -OrgName <your-org> -ProjectName <your-project> `
       -MiObjectId c8fa61da-c30c-4c87-a738-fe726a735d24 -MiDisplayName 'msi-build2026-mcp-azure-functions'
 #>
 

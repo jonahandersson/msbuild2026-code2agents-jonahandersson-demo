@@ -9,13 +9,13 @@ param webAppName string = 'app-devopsagentchat'
 param location string = resourceGroup().location
 
 @description('Foundry project endpoint for the DevOps agent')
-param foundryProjectEndpoint string = 'https://aif-mcpdemork5lpkrhjgtl6.services.ai.azure.com/api/projects/proj-mcpdemork5lpkrhjgtl6'
+param foundryProjectEndpoint string = 'https://<your-foundry-account>.services.ai.azure.com/api/projects/<your-project>'
 
 @description('Foundry model deployment name')
 param foundryModel string = 'gpt-4.1-mini'
 
-@description('MCP server URL (Azure Function MCP endpoint, including the extension key)')
-param mcpServerUrl string = 'https://func-mcpdemork5lpkrhjgtl6.azurewebsites.net/runtime/webhooks/mcp?code=w7mYjvEpo6YSSLWsx5oQpCV6MCRdhMJh_R16X-S2HNNYAzFuOxeTow=='
+@description('MCP server URL (Azure Function MCP endpoint, including the extension key). Supply at deploy time via azd env / -p mcpServerUrl; do not hardcode the key.')
+param mcpServerUrl string
 
 resource plan 'Microsoft.Web/serverfarms@2023-12-01' = {
   name: planName
@@ -46,6 +46,7 @@ resource web 'Microsoft.Web/sites@2023-12-01' = {
     siteConfig: {
       linuxFxVersion: 'DOTNETCORE|10.0'
       alwaysOn: true
+      webSocketsEnabled: true
       ftpsState: 'Disabled'
       minTlsVersion: '1.2'
       http20Enabled: true

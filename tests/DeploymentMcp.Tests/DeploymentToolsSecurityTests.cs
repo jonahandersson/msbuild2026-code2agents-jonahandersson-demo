@@ -52,6 +52,11 @@ public class DeploymentToolsSecurityTests
     [InlineData("-1")]
     [InlineData("0")]
     [InlineData("1; DROP TABLE Builds")]
+    [InlineData("build-")]                          // prefix with no number
+    [InlineData("build-abc")]                       // prefix + non-numeric
+    [InlineData("build--1")]                         // prefix + negative
+    [InlineData("build-0")]                          // prefix + zero
+    [InlineData("build-1; DROP TABLE Builds")]       // prefix + injection
     public async Task DiagnoseDeployment_rejects_bad_inputs(string? deploymentId)
     {
         var sut = CreateSut();
@@ -62,13 +67,20 @@ public class DeploymentToolsSecurityTests
         await act.Should().ThrowAsync<ArgumentException>();
     }
 
-    [Fact]
-    public async Task DiagnoseDeployment_accepts_positive_integer()
+    // The agent passes back whatever get_recent_deployments returned as the
+    // build ID. That tool emits ids in the "build-<int>" form, so the second
+    // tool call in the chain WILL be "build-2891" — not a bare integer. If
+    // this stops being accepted, the agent chain breaks on the second call.
+    [Theory]
+    [InlineData("2891")]                             // bare positive integer
+    [InlineData("build-2891")]                       // the form the tool returns
+    [InlineData("BUILD-2891")]                        // case-insensitive prefix
+    public async Task DiagnoseDeployment_accepts_valid_ids(string deploymentId)
     {
         var sut = CreateSut();
 
         var result = await sut.DiagnoseDeployment(
-            context: null!, deploymentId: "2891", CancellationToken.None);
+            context: null!, deploymentId, CancellationToken.None);
 
         result.Should().NotBeNull();
     }

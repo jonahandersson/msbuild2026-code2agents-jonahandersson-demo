@@ -4,7 +4,7 @@ A small ASP.NET Core API used as the **demo target** for the agent-driven rollba
 scenario. The MCP server (the Function app in the parent repo) queries this repo's
 build pipeline; the agent opens rollback PRs against this repo.
 
-The talk story is: a schema migration on `Orders` times out during deployment,
+The scenario is: a schema migration on `Orders` times out during deployment,
 the agent diagnoses it, and the agent opens a rollback PR back to the last green
 commit.
 

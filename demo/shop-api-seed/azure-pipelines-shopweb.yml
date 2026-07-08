@@ -31,7 +31,7 @@ variables:
   project: 'src/ShopWeb/ShopWeb.csproj'
   # Override these at queue-time or via pipeline variables if your env differs.
   azureServiceConnection: 'sc-azure-shopweb'
-  appServiceName: 'app-shopweb-mcpdemork5lpkrhjgtl6'
+  appServiceName: '<your-shopweb-app>'
 
 stages:
   - stage: Build

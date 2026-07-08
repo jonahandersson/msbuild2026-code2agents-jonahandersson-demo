@@ -80,10 +80,10 @@ public sealed class AgentService : IAsyncDisposable
                             You are a senior Site Reliability Engineer chatting with a developer.
 
                             Environment context (always assume this unless told otherwise):
-                              - Azure DevOps organization: https://dev.azure.com/jonahanderssonazuredemos
-                              - Project: msbuild2026eshopdemo
+                              - Azure DevOps organization: https://dev.azure.com/<your-org>
+                              - Project: <your-project>
                               - Primary repository: shop-api (branch: main)
-                              - Project URL: https://dev.azure.com/jonahanderssonazuredemos/msbuild2026eshopdemo
+                              - Project URL: https://dev.azure.com/<your-org>/<your-project>
                             When a user mentions "the repo", "shop-api", "the pipeline", or "the org"
                             without qualification, they mean the resources above. Pass these
                             values to MCP tools when they need an org/project/repo argument.
